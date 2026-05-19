@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #13eaeb;
+  --color-dark: #060a1d;
+  --color-body: #b6f5fc;
+}
+
+:root {
+  --shadow-glow-sm: 0 0 12px rgb(19 234 235 / 0.18);
+  --shadow-glow-md: 0 0 18px rgb(19 234 235 / 0.2);
+  --text-shadow-title: 0 0 6px rgb(19 234 235 / 0.7), 0 0 14px rgb(19 234 235 / 0.4);
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: var(--color-dark);
+  color: var(--color-body);
+}
+
+/* Webkit */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, .3);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .3) transparent;
+}
+
+/* 模型相关 */
+.panel-card {
+  @apply absolute z-10 backdrop-blur rounded-lg shadow-lg border border-primary/30 bg-primary/4 overflow-hidden;
+}
+
+.panel-header {
+  @apply px-3 py-2 text-sm font-semibold text-primary bg-primary/4 border-b border-primary/15 select-none;
+}
+
+.panel-body {
+  @apply p-2 max-h-[70vh] overflow-y-auto text-sm;
+}
+
+.panel-item {
+  @apply px-2 py-1 rounded cursor-pointer hover:bg-primary/15 text-cyan-100 flex items-center justify-between gap-2 transition-colors;
+}
+
+.panel-item-active {
+  @apply bg-primary/15 text-sky-800 hover:bg-primary/15;
+}
+
+/* 按钮 */
+.btn {
+  @apply px-2 py-0.5 text-sm rounded border border-primary/30 bg-transparent text-cyan-100 hover:bg-primary/15 hover:text-primary active:bg-primary/15 transition-colors cursor-pointer;
+}
+
+.btn-primary {
+  @apply px-2 py-0.5 text-sm rounded border border-primary bg-primary hover:bg-primary/80 hover:border-primary/80 text-dark transition-colors cursor-pointer;
+}
+
+/* 两侧浮动 */
+.level-side {
+  @apply absolute top-20 z-10 w-80 max-h-[calc(100vh-6rem)] overflow-y-auto
+}
+
+/* 四角上的直角括号 */
+.corner-brackets {
+  @apply pointer-events-none absolute w-2.5 h-2.5 border-primary
+}

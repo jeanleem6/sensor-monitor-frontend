@@ -1,0 +1,23 @@
+<svg id="组_38" data-name="组 38" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="554" height="32" viewBox="0 0 554 32">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+        fill-rule: evenodd;
+        stroke: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="629" y1="140" x2="1179" y2="140" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#12e7e8" stop-opacity="0"/>
+      <stop offset="0.479" stop-color="#12e7e8"/>
+      <stop offset="0.485" stop-color="#12e7e8"/>
+      <stop offset="0.987" stop-color="#12e7e8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path id="形状_4" data-name="形状 4" class="cls-1" d="M629,126H740.392l29.838,28h272.51l29.84-28H1179" transform="translate(-627 -125)"/>
+  <image id="图层_5" data-name="图层 5" x="129" y="6" width="30" height="18" xlink:href="data:img/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAASCAYAAABM8m7ZAAABCElEQVRIib3WzysGQRgH8M/Lq9dv5S3eg6KUE3c5cOKi9yT8k/4AvYmLs5NycHOhcKCExKvlmTja1c63tmkPs5/ZeWZmtzF9fTPsO6/oy5D7zqwBNNDEGF/3WVJALwENYQqDueBiep+ibWEmBlE7LNAHfGAUCzGI2uGE3+I96r0Sbe1wwq/whkmsRt1rh8V0X+Ax0E20c8AJP8MdJtBFJwec8NOY+nHsYC4HnPBjXGIEe5jPAYsF18M5iuN1H4s54IQfRt1bgS/9By4+EmX7bGEt9vtB7IDSqfJR6MWiK870XSz/sV//99WsMlocxRtvxGrfLvuAqnCREzxjPc73UqlS46r5+cnAJygKN8oJWhh9AAAAAElFTkSuQmCC"/>
+  <image id="图层_5_拷贝" data-name="图层 5 拷贝" x="400" y="6" width="30" height="18" xlink:href="data:img/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAASCAYAAABM8m7ZAAABC0lEQVRIib3VzysEcRQA8M+skV9FWQcHRSmluLu6uSn8L/41SUSSUi4OTi4uVk4OpLRG33pqaTezuzP7LvMur8/3+96bmawoCs3WsxFFholE5aMS0cB05O1RwWOYjfwTH6OAx7GAIoF4S3mjZjTNcyVa/IXXOIA64RlsxrONlx+0TngOWzHXNNPHTlRNW93EdrQ2gfeR/4qq4UXsxPv6gNtuqIrhJewGmm552QutEl7GfuzMHU7/zrQOeDXQPFp7/B9aBbyGg/gy3eCobGE+xA9ivQO9ipuWjrxLW7ISxRvYi5mmJTrp99TdWn1Yom4yDniOs37RXvBUibp3XOB6EDRFNv/UGqTVwwW+ARKANhxfUBtNAAAAAElFTkSuQmCC"/>
+</svg>

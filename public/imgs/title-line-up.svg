@@ -1,0 +1,23 @@
+<svg id="组_39" data-name="组 39" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1194" height="32" viewBox="0 0 1194 32">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+        fill-rule: evenodd;
+        stroke: url(#linear-gradient);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="1329" y1="735" x2="2519" y2="735" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#12e7e8" stop-opacity="0"/>
+      <stop offset="0.479" stop-color="#12e7e8"/>
+      <stop offset="0.485" stop-color="#12e7e8"/>
+      <stop offset="0.987" stop-color="#12e7e8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path id="形状_4" data-name="形状 4" class="cls-1" d="M1329,749h444.39l29.84-28h272.51l29.84,28H2519" transform="translate(-1327 -720)"/>
+  <image id="图层_545" data-name="图层 545" x="462" y="6" width="30" height="18" xlink:href="data:img/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAASCAYAAABM8m7ZAAABE0lEQVRIib3VzytEURQA4O+NUaIoESs7C2WllCRSwh+LsrPzD1gqpSxIsWDht8GgqzM1piZv5r3nbO7bnL53zj333mz86to/xVc7Uy9oLmEVw70mFoHXsRaVvPSa3G+rN7CCT+zhOEdO4VZvYhlN7OAkZ15WBN7GIt4CPe0x/ydup6dyw+lvt7CABnZx1g/aijxwFu2dx2ug50VQOeBaTO9sTO4+Louif8G1mNwZPOIApd023eBa7OcEHnCYZqIstBuc0DmM4g5HsZYanXAWrR3EfZzRp7LRzooTOomBwC7i6FQS9TZ0LNr8jBu8V4W2Kk7oSKyNaHGzSrQFD8V3qjBVmy7+yiPB6dX4iGp/vSCVBb4B6zM3VKYc0AQAAAAASUVORK5CYII="/>
+  <image id="图层_5_拷贝" data-name="图层 5 拷贝" x="733" y="6" width="30" height="18" xlink:href="data:img/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAASCAYAAABM8m7ZAAABGklEQVRIib3VTStEURgH8N+MUaQoL1s7SllZW1nIWj6Qr0NZ2QilZKEsWSlFKUNZeCcvV4+Omqlb7lxz5785q3N+T+c5L7XRq2amPTU9SCOHWC3APmMfh2VLzINfCswbxFIa98rAZbd6Fsuo4wC7ncKNkj09wSdWMJ8K2O5kgVqWZcaa1yXsn0wnvA9H2Co6sV5WTDnFGt4wl/peaAf/C0fOEv6aer9YBO8GHLnAeroRU1j4a+1uwZFLbOARky2HrnI40sQmHjCe+p5rdBuO3GIHdxjGTJ5TBSyh8Zzeoz9tfduBqwqOPOE4jXHPJ1rxKmHpfp+nTyWskV+8ajjyjptURKBDMfYCjsS7Hn2PIiIDvYIjX6nfH8i+Ac5aOqXi6BruAAAAAElFTkSuQmCC"/>
+</svg>

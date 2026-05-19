@@ -1,0 +1,108 @@
+<svg id="R" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1735" height="57" viewBox="0 0 1735 57">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+      }
+
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7 {
+        fill-rule: evenodd;
+      }
+
+      .cls-1 {
+        stroke: url(#linear-gradient);
+      }
+
+      .cls-2 {
+        stroke: #13eaeb;
+      }
+
+      .cls-10, .cls-3, .cls-5 {
+        opacity: 0.5;
+      }
+
+      .cls-3 {
+        stroke: url(#linear-gradient-2);
+      }
+
+      .cls-10, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8, .cls-9 {
+        fill: #13eaeb;
+      }
+
+      .cls-4 {
+        opacity: 0.3;
+      }
+
+      .cls-6 {
+        opacity: 0.8;
+      }
+
+      .cls-8 {
+        filter: url(#filter);
+      }
+
+      .cls-9 {
+        filter: url(#filter-2);
+      }
+
+      .cls-10 {
+        filter: url(#filter-3);
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="1925" y1="65" x2="1" y2="65" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#13feff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#17feff"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="606" y1="75.5" x2="115" y2="75.5" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#13eaeb" stop-opacity="0"/>
+      <stop offset="1" stop-color="#1efeff"/>
+    </linearGradient>
+    <filter id="filter" x="400" y="7" width="13" height="13" filterUnits="userSpaceOnUse">
+      <feGaussianBlur result="blur" stdDeviation="1.333" in="SourceAlpha"/>
+      <feComposite result="composite"/>
+      <feComposite result="composite-2"/>
+      <feComposite result="composite-3"/>
+      <feFlood result="flood" flood-color="#13eaeb" flood-opacity="0.8"/>
+      <feComposite result="composite-4" operator="in" in2="composite-3"/>
+      <feBlend result="blend" mode="screen" in2="SourceGraphic"/>
+      <feBlend result="blend-2" in="SourceGraphic"/>
+    </filter>
+    <filter id="filter-2" x="36" y="8" width="13" height="13" filterUnits="userSpaceOnUse">
+      <feGaussianBlur result="blur" stdDeviation="1.333" in="SourceAlpha"/>
+      <feComposite result="composite"/>
+      <feComposite result="composite-2"/>
+      <feComposite result="composite-3"/>
+      <feFlood result="flood" flood-color="#13eaeb" flood-opacity="0.8"/>
+      <feComposite result="composite-4" operator="in" in2="composite-3"/>
+      <feBlend result="blend" mode="screen" in2="SourceGraphic"/>
+      <feBlend result="blend-2" in="SourceGraphic"/>
+    </filter>
+    <filter id="filter-3" x="382" y="42" width="13" height="13" filterUnits="userSpaceOnUse">
+      <feGaussianBlur result="blur" stdDeviation="1.333" in="SourceAlpha"/>
+      <feComposite result="composite"/>
+      <feComposite result="composite-2"/>
+      <feComposite result="composite-3"/>
+      <feFlood result="flood" flood-color="#13eaeb" flood-opacity="0.8"/>
+      <feComposite result="composite-4" operator="in" in2="composite-3"/>
+      <feBlend result="blend" mode="screen" in2="SourceGraphic"/>
+      <feBlend result="blend-2" in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <path id="形状_1" data-name="形状 1" class="cls-1" d="M1925,44H365l-44,42h-320" transform="translate(0 -31)"/>
+  <path id="形状_2" data-name="形状 2" class="cls-2" d="M407,44l-13-12h-262l-13,13h-76" transform="translate(0 -31)"/>
+  <path id="形状_3" data-name="形状 3" class="cls-3" d="M606,64h-198l-18,15h-267l-8,8" transform="translate(0 -31)"/>
+  <g id="R-2" data-name="R">
+    <path id="矩形_2_拷贝_3" data-name="矩形 2 拷贝 3" class="cls-4" d="M236,53h-14l-20,19h14Z" transform="translate(0 -31)"/>
+    <path id="矩形_2_拷贝_4" data-name="矩形 2 拷贝 4" class="cls-5" d="M212,53h-14l-20,19h14Z" transform="translate(0 -31)"/>
+    <path id="矩形_2_拷贝_5" data-name="矩形 2 拷贝 5" class="cls-6" d="M188,53h-14l-20,19h14Z" transform="translate(0 -31)"/>
+    <path id="矩形_2_拷贝_6" data-name="矩形 2 拷贝 6" class="cls-7" d="M164,53h-14l-20,19h14Z" transform="translate(0 -31)"/>
+  </g>
+  <g id="dz">
+    <rect id="矩形_1" data-name="矩形 1" class="cls-8" x="404" y="10" width="6" height="6"/>
+    <rect id="矩形_1_拷贝" data-name="矩形 1 拷贝" class="cls-9" x="40" y="11" width="6" height="6"/>
+    <rect id="矩形_1_拷贝_2" data-name="矩形 1 拷贝 2" class="cls-10" x="386" y="45" width="6" height="6"/>
+  </g>
+</svg>
