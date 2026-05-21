@@ -32,7 +32,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 2px;
-  background-color: rgba(255, 255, 255, .3);
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 *::-webkit-scrollbar-track {
@@ -42,7 +42,7 @@ body {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, .3) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 /* 模型相关 */
@@ -77,10 +77,10 @@ body {
 
 /* 两侧浮动 */
 .level-side {
-  @apply absolute top-20 z-10 w-80 max-h-[calc(100vh-6rem)] overflow-y-auto
+  @apply absolute top-20 z-10 w-80 max-h-[calc(100vh-6rem)] overflow-y-auto;
 }
 
 /* 四角上的直角括号 */
 .corner-brackets {
-  @apply pointer-events-none absolute w-2.5 h-2.5 border-primary
+  @apply pointer-events-none absolute w-2.5 h-2.5 border-primary;
 }
