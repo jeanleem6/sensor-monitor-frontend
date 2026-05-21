@@ -34,7 +34,7 @@ const metrics = computed(() => {
 
 <template>
   <div
-    class="absolute left-1/2 -translate-x-1/2 bottom-3 z-10 max-w-[80vw] flex items-stretch divide-x divide-primary/15 rounded border border-primary/40 bg-primary/4 backdrop-blur shadow-(--shadow-glow-md) overflow-hidden"
+    class="absolute left-1/2 -translate-x-1/2 bottom-3 z-10 max-w-[calc(100vw-43rem)] flex items-stretch divide-x divide-primary/15 rounded border border-primary/40 bg-primary/4 backdrop-blur shadow-(--shadow-glow-md) overflow-hidden"
   >
     <div v-for="m in metrics" :key="m.label" class="px-5 py-2 min-w-26 flex flex-col items-center justify-center">
       <div class="text-sm uppercase tracking-wider text-cyan-200/70">{{ m.label }}</div>
