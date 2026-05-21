@@ -12,6 +12,7 @@ onMounted(async () => {
   store.bindScene(api)
   try {
     await api.loadModel()
+    if (store.transparentMode) api.toggleTransparent(true)
   } catch (err) {
     console.error('[ThreeViewer] failed to load model', err)
   } finally {

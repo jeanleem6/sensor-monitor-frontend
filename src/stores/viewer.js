@@ -20,7 +20,7 @@ export const useViewerStore = defineStore('viewer', () => {
   const selectedRoom = ref(null)
 
   // ---- 视觉模式 ----
-  const transparentMode = ref(false)
+  const transparentMode = ref(true)
 
   // ---- 命中信息 ----
   const infoPanel = ref({ visible: false, meshName: '', materialName: '' })
@@ -34,13 +34,9 @@ export const useViewerStore = defineStore('viewer', () => {
   // ---- 计算属性 ----
   const floorCount = computed(() => floors.value.length)
   const roomCount = computed(() => Object.keys(rooms.value).length)
-  const currentFloor = computed(() =>
-    selectedFloor.value !== null ? floors.value[selectedFloor.value] : null,
-  )
+  const currentFloor = computed(() => (selectedFloor.value !== null ? floors.value[selectedFloor.value] : null))
   const currentFloorRooms = computed(() => currentFloor.value?.roomNames || [])
-  const currentRoom = computed(() =>
-    selectedRoom.value ? rooms.value[selectedRoom.value] : null,
-  )
+  const currentRoom = computed(() => (selectedRoom.value ? rooms.value[selectedRoom.value] : null))
 
   const breadcrumb = computed(() => {
     const crumbs = [{ key: 'building', label: '整栋楼' }]
@@ -155,6 +151,6 @@ export const useViewerStore = defineStore('viewer', () => {
     resetView,
     fitView,
     showInfo,
-    hideInfo,
+    hideInfo
   }
 })
