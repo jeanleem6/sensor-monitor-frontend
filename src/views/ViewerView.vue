@@ -1,14 +1,14 @@
 <script setup>
 import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
-import ThreeViewer from '@/components/model/ThreeViewer.vue'
-import AppHeader from '@/components/AppHeader.vue'
-import LevelBreadcrumb from '@/components/model/LevelBreadcrumb.vue'
-import LevelLeftPanel from '@/components/model/LevelLeftPanel.vue'
-import LevelRightPanel from '@/components/model/LevelRightPanel.vue'
-import LevelBottomPanel from '@/components/model/LevelBottomPanel.vue'
-import BuildingAlarmStrip from '@/components/model/BuildingAlarmStrip.vue'
-import InfoPanel from '@/components/model/InfoPanel.vue'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import LevelBreadcrumb from '@/components/layout/LevelBreadcrumb.vue'
+import ThreeViewer from '@/components/scene/ThreeViewer.vue'
+import InfoPanel from '@/components/scene/InfoPanel.vue'
+import LevelLeftPanel from '@/components/panels/LevelLeftPanel.vue'
+import LevelRightPanel from '@/components/panels/LevelRightPanel.vue'
+import LevelBottomPanel from '@/components/panels/LevelBottomPanel.vue'
+import BuildingAlarmStrip from '@/components/panels/BuildingAlarmStrip.vue'
 
 const store = useViewerStore()
 const { loading, level } = storeToRefs(store)

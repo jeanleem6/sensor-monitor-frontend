@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
-import FloatPanel from '@/components/FloatPanel.vue'
+import FloatPanel from '@/components/ui/FloatPanel.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import GaugeRing from '@/components/ui/GaugeRing.vue'
 

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
-import FloatPanel from '@/components/FloatPanel.vue'
+import FloatPanel from '@/components/ui/FloatPanel.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 
 const store = useViewerStore()
