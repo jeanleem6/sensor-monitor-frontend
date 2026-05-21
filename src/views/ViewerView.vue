@@ -7,10 +7,11 @@ import LevelBreadcrumb from '@/components/model/LevelBreadcrumb.vue'
 import LevelLeftPanel from '@/components/model/LevelLeftPanel.vue'
 import LevelRightPanel from '@/components/model/LevelRightPanel.vue'
 import LevelBottomPanel from '@/components/model/LevelBottomPanel.vue'
+import BuildingAlarmStrip from '@/components/model/BuildingAlarmStrip.vue'
 import InfoPanel from '@/components/model/InfoPanel.vue'
 
 const store = useViewerStore()
-const { loading } = storeToRefs(store)
+const { loading, level } = storeToRefs(store)
 </script>
 
 <template>
@@ -39,7 +40,8 @@ const { loading } = storeToRefs(store)
       <LevelBreadcrumb />
       <LevelLeftPanel />
       <LevelRightPanel />
-      <LevelBottomPanel />
+      <BuildingAlarmStrip v-if="level === 'building'" />
+      <LevelBottomPanel v-else />
       <InfoPanel />
     </template>
   </div>
