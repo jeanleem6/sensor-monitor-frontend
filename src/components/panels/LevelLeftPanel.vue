@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
-import FloatPanel from '@/components/ui/FloatPanel.vue'
+import BasePanel from '@/components/ui/BasePanel.vue'
 import MetricCard from '@/components/ui/MetricCard.vue'
 import GaugeRing from '@/components/ui/GaugeRing.vue'
 
@@ -47,7 +47,7 @@ const solarRadiation = [
   <div class="level-side left-3">
     <!-- ========== 楼栋级 ========== -->
     <template v-if="level === 'building'">
-      <FloatPanel title="全参数气象站">
+      <BasePanel title="全参数气象站">
         <!-- 基础参数 -->
         <div class="grid grid-cols-2 gap-2 mt-2">
           <MetricCard
@@ -80,9 +80,9 @@ const solarRadiation = [
             />
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
 
-      <FloatPanel title="太阳辐射观测系统" class="mt-5">
+      <BasePanel title="太阳辐射观测系统" class="mt-5">
         <div class="mt-2 grid grid-cols-1 gap-2">
           <MetricCard
             v-for="s in solarRadiation"
@@ -99,12 +99,12 @@ const solarRadiation = [
           <Icon icon="mdi:solar-power-variant" class="text-amber-300 text-base" />
           <span>当日峰值 1024 W/m² · 14:20</span>
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
 
     <!-- ========== 楼层级 ========== -->
     <template v-else-if="level === 'floor'">
-      <FloatPanel :title="title" class="min-h-60">
+      <BasePanel :title="title" class="min-h-60">
         <div class="flex-1 min-h-0 overflow-y-auto">
           <div v-if="!currentFloor?.roomNames.length" class="px-2 py-1 text-cyan-200/50">本层未侦测到房间</div>
           <div
@@ -117,12 +117,12 @@ const solarRadiation = [
             <span class="text-sm text-cyan-200/60 shrink-0">{{ rooms[name]?.meshCount ?? 0 }} 件</span>
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
 
     <!-- ========== 房间级 ========== -->
     <template v-else>
-      <FloatPanel :title="title" class="min-h-60">
+      <BasePanel :title="title" class="min-h-60">
         <div class="px-2 py-1.5 text-sm text-cyan-200/70 border-b border-cyan-400/20">
           所属：{{ currentFloor?.name ?? '—' }}
         </div>
@@ -145,7 +145,7 @@ const solarRadiation = [
             <span class="truncate">{{ name }}</span>
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
   </div>
 </template>

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
-import FloatPanel from '@/components/ui/FloatPanel.vue'
+import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 
 const store = useViewerStore()
@@ -88,7 +88,7 @@ const filteredDevices = computed(() =>
   <div class="level-side right-3">
     <!-- ========== 楼栋级 ========== -->
     <template v-if="level === 'building'">
-      <FloatPanel title="摄像头监控">
+      <BasePanel title="摄像头监控">
         <div class="grid grid-cols-1 gap-3 my-2">
           <div
             v-for="c in cameras"
@@ -127,9 +127,9 @@ const filteredDevices = computed(() =>
             </div>
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
 
-      <FloatPanel title="手持及其它设备" class="mt-5">
+      <BasePanel title="手持及其它设备" class="mt-5">
         <!-- 总数 -->
         <div
           class="flex items-center justify-between mt-2 px-2 py-2.25 rounded border border-primary/30 bg-primary/8 cursor-pointer hover:bg-primary/15 transition-colors"
@@ -176,12 +176,12 @@ const filteredDevices = computed(() =>
           <span>查看所有设备</span>
           <Icon icon="lucide:arrow-right" class="text-sm" />
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
 
     <!-- ========== 楼层级 ========== -->
     <template v-else-if="level === 'floor'">
-      <FloatPanel :title="title">
+      <BasePanel :title="title">
         <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
           <div class="grid grid-cols-2 gap-2 px-1">
             <div class="rounded bg-cyan-400/10 p-2">
@@ -216,12 +216,12 @@ const filteredDevices = computed(() =>
             </div>
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
 
     <!-- ========== 房间级 ========== -->
     <template v-else>
-      <FloatPanel :title="title">
+      <BasePanel :title="title">
         <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
           <div
             v-for="s in roomStats"
@@ -237,7 +237,7 @@ const filteredDevices = computed(() =>
             返回上一层
           </div>
         </div>
-      </FloatPanel>
+      </BasePanel>
     </template>
 
     <!-- ========== 摄像头视频 Modal ========== -->

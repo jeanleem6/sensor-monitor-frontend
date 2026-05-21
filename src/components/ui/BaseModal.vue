@@ -2,7 +2,7 @@
 /**
  * BaseModal —— 通用弹窗
  *
- * 特性：Teleport 至 body、ESC / 遮罩关闭、四角直角括号 + 主题光晕，视觉与 FloatPanel 统一。
+ * 特性：Teleport 至 body、ESC / 遮罩关闭、四角直角括号 + 主题光晕，视觉与 BasePanel 统一。
  * Props：
  *   - modelValue: 控制显示，配合 v-model 使用
  *   - title:      标题文本

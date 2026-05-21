@@ -4,7 +4,7 @@ import { useViewerStore } from '@/stores/viewer'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import LevelBreadcrumb from '@/components/layout/LevelBreadcrumb.vue'
 import ThreeViewer from '@/components/scene/ThreeViewer.vue'
-import InfoPanel from '@/components/scene/InfoPanel.vue'
+import MeshInfoCard from '@/components/scene/MeshInfoCard.vue'
 import LevelLeftPanel from '@/components/panels/LevelLeftPanel.vue'
 import LevelRightPanel from '@/components/panels/LevelRightPanel.vue'
 import LevelBottomPanel from '@/components/panels/LevelBottomPanel.vue'
@@ -42,7 +42,7 @@ const { loading, level } = storeToRefs(store)
       <LevelRightPanel />
       <BuildingAlarmStrip v-if="level === 'building'" />
       <LevelBottomPanel v-else />
-      <InfoPanel />
+      <MeshInfoCard />
     </template>
   </div>
 </template>
