@@ -327,11 +327,17 @@ export function createThreeScene(container, store) {
     })
   }
 
+  // 视图切换后，依 store.transparentMode 重新套用透明状态，避免 UI 与模型不同步
+  function reapplyTransparent() {
+    if (store.transparentMode) toggleTransparent(true)
+  }
+
   function showBuilding() {
     if (!building) return
     resetMeshAppearance()
     animateExplode(false)
     fitCameraToObject()
+    reapplyTransparent()
   }
 
   // 楼层爆炸 → 隐藏其它层 → 镜头聚焦
@@ -355,6 +361,8 @@ export function createThreeScene(container, store) {
         if (i === index) return
         floor.forEach((m) => (m.visible = false))
       })
+      // 其它层隐藏后，仅对目标层重新套用透明，避免与淡出动画冲突
+      reapplyTransparent()
     }, 950)
 
     // 聚焦目标层（用爆炸后的盒子）
@@ -383,6 +391,7 @@ export function createThreeScene(container, store) {
     const box = new THREE.Box3()
     roomMeshes[name].forEach((m) => box.expandByObject(m))
     focusBox(box, 1.6)
+    reapplyTransparent()
   }
 
   // ---------- 材质高亮（building 层级用） ----------
