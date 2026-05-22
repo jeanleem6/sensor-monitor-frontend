@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ViewerView from '@/views/ViewerView.vue'
 
 const router = createRouter({
@@ -6,11 +7,17 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'viewer',
-      component: ViewerView,
-      meta: { title: 'OBJ Building Demo' },
-    },
-  ],
+      component: DefaultLayout,
+      children: [
+        {
+          path: '',
+          name: 'viewer',
+          component: ViewerView,
+          meta: { title: 'Dashboard' }
+        }
+      ]
+    }
+  ]
 })
 
 router.afterEach((to) => {
