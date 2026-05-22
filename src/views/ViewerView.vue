@@ -42,7 +42,7 @@ const { loading, level } = storeToRefs(store)
       <LevelRightPanel />
       <BuildingAlarmStrip v-if="level === 'building'" />
       <LevelBottomPanel v-else />
-      <MeshInfoCard />
+      <!-- <MeshInfoCard /> -->
     </template>
   </div>
 </template>
