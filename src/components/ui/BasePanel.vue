@@ -22,8 +22,10 @@ defineProps({
 
     <!-- title -->
     <div class="relative shrink-0">
+      <!-- max-w 对齐窄栏 panel 宽度（400px），保证 SVG 在宽 panel 中也以约 400x23 渲染，
+           顶部留出自然空隙，避免 SVG 等比拉伸后几乎贴住顶部边框 -->
       <div
-        class="text-center text-base font-semibold text-primary tracking-widest py-1.5 select-none bg-no-repeat bg-bottom bg-size-[100%_auto] bg-[url(/imgs/title-line-down.svg)]"
+        class="mx-auto max-w-100 text-center text-base font-semibold text-primary tracking-widest py-1.5 select-none bg-no-repeat bg-bottom bg-size-[100%_auto] bg-[url(/imgs/title-line-down.svg)]"
       >
         {{ title }}
       </div>
