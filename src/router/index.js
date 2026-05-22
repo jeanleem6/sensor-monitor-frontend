@@ -1,23 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import ViewerView from '@/views/ViewerView.vue'
+import routes from './routes'
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [
-    {
-      path: '/',
-      component: DefaultLayout,
-      children: [
-        {
-          path: '',
-          name: 'viewer',
-          component: ViewerView,
-          meta: { title: 'Dashboard' }
-        }
-      ]
-    }
-  ]
+  routes
 })
 
 router.afterEach((to) => {
