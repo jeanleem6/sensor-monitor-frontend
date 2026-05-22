@@ -29,6 +29,8 @@ export function createThreeScene(container, store) {
 
   let buildingSize = 1
   let explodeGap = 0
+  // 静止状态（未爆炸）的 building 盒子；用于回到楼栋视角时正确居中，避免读取仍在动画中的盒子
+  let restBuildingBox = null
 
   let sectionY = 0
   let draggingSection = false
@@ -109,6 +111,8 @@ export function createThreeScene(container, store) {
     building.position.x -= center.x
     building.position.y -= center.y
     building.position.z -= center.z
+    // 此时尚未爆炸，缓存静止盒子用于后续回到楼栋视角时的居中计算
+    restBuildingBox = new THREE.Box3().setFromObject(building)
     fitCameraToObject()
   }
 
@@ -336,7 +340,10 @@ export function createThreeScene(container, store) {
     if (!building) return
     resetMeshAppearance()
     animateExplode(false)
-    fitCameraToObject()
+    // 用静止盒子平滑动画镜头：避免读取仍在爆炸状态下的盒子导致中心偏移，
+    // 同时 gsap 会覆盖前一个 focusFloor/focusRoom 未完成的 camera tween
+    if (restBuildingBox) focusBox(restBuildingBox, 0.7)
+    else fitCameraToObject()
     reapplyTransparent()
   }
 
@@ -444,6 +451,8 @@ export function createThreeScene(container, store) {
       const box = new THREE.Box3()
       floorGroups[store.selectedFloor].forEach((m) => box.expandByObject(m))
       focusBox(box, 1.5)
+    } else if (restBuildingBox) {
+      focusBox(restBuildingBox, 0.7)
     } else {
       fitCameraToObject()
     }
