@@ -21,7 +21,9 @@ const props = defineProps({
   unit: { type: String, default: '' },
   size: { type: Number, default: 88 },
   // normal | warning | danger
-  status: { type: String, default: 'normal' }
+  status: { type: String, default: 'normal' },
+  // 值和单位同一行（baseline 对齐）；默认换行显示
+  inline: { type: Boolean, default: false }
 })
 
 const ratio = computed(() => Math.min(1, Math.max(0, props.value / props.max)))
@@ -40,14 +42,7 @@ const ringColor = computed(() => {
   <div class="flex flex-col items-center">
     <div class="relative" :style="{ width: size + 'px', height: size + 'px' }">
       <svg :width="size" :height="size" class="-rotate-90">
-        <circle
-          :cx="size / 2"
-          :cy="size / 2"
-          :r="radius"
-          fill="none"
-          stroke="rgba(19,234,235,0.12)"
-          stroke-width="6"
-        />
+        <circle :cx="size / 2" :cy="size / 2" :r="radius" fill="none" stroke="rgba(19,234,235,0.12)" stroke-width="6" />
         <circle
           :cx="size / 2"
           :cy="size / 2"
@@ -61,7 +56,13 @@ const ringColor = computed(() => {
           class="transition-all duration-500"
         />
       </svg>
-      <div class="absolute inset-0 flex flex-col items-center justify-center">
+      <div v-if="inline" class="absolute inset-0 flex items-center justify-center">
+        <div class="inline-flex items-baseline gap-0.5">
+          <span class="text-lg font-bold font-mono text-cyan-50 leading-none">{{ value }}</span>
+          <span v-if="unit" class="text-sm text-cyan-200/60 leading-none">{{ unit }}</span>
+        </div>
+      </div>
+      <div v-else class="absolute inset-0 flex flex-col items-center justify-center">
         <span class="text-lg font-bold font-mono text-cyan-50 leading-none">{{ value }}</span>
         <span v-if="unit" class="mt-0.5 text-sm text-cyan-200/60 leading-none">{{ unit }}</span>
       </div>
