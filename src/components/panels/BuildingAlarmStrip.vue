@@ -92,7 +92,7 @@ const showAll = ref(false)
 
 <template>
   <div
-    class="absolute left-88 right-88 bottom-5 z-10 flex items-stretch border border-primary/40 bg-primary/4 backdrop-blur shadow-(--shadow-glow-md) rounded-0 overflow-hidden"
+    class="absolute left-108 right-108 bottom-5 z-10 flex items-stretch border border-primary/40 bg-primary/4 backdrop-blur shadow-(--shadow-glow-md) rounded-0 overflow-hidden"
   >
     <!-- 标题 -->
     <div class="flex items-center gap-2 px-4 py-2 border-r border-primary/25 bg-primary/8 select-none shrink-0">
