@@ -10,7 +10,7 @@
     <!-- 标题 -->
     <div class="relative h-full flex items-center px-8 whitespace-nowrap">
       <div class="absolute -left-px -right-px bottom-px h-px bg-primary" />
-      <span class="relative text-2xl font-bold tracking-[0.4em] text-primary text-shadow-(--text-shadow-title)"
+      <span class="relative text-2xl font-500 tracking-[0.4em] text-primary text-shadow-(--text-shadow-title)"
         >智慧城市环境教学平台</span
       >
     </div>
