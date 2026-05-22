@@ -4,22 +4,290 @@ import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import EChart from '@/components/ui/EChart.vue'
 
 const store = useViewerStore()
-const { level, floors, rooms, currentFloor, currentRoom, selectedRoom } = storeToRefs(store)
+const { level, floors, currentFloor, currentRoom, selectedRoom } = storeToRefs(store)
 
-const title = computed(() => {
-  if (level.value === 'floor') return '本层概览'
-  return '房间统计'
+const title = computed(() => '房间统计')
+
+// ---------- 楼层级 · 各房间传感器 DEMO 数据 ----------
+// 当模型无房间数据时的 fallback 房间列表
+const DEMO_ROOM_NAMES = [
+  '办公室-A',
+  '办公室-B',
+  '办公室-C',
+  '办公室-D',
+  '办公室-E',
+  '会议室-1',
+  '会议室-2',
+  '会议室-3',
+  '会议室-4',
+  '会议室-5',
+  '报告厅',
+  '展示厅',
+  '茶水间',
+  '休息室-1',
+  '休息室-2',
+  '走廊-北',
+  '走廊-中',
+  '走廊-南',
+  '楼梯间-东',
+  '楼梯间-西',
+  '卫生间-男',
+  '卫生间-女',
+  '储物间-1',
+  '储物间-2',
+  '储物间-3',
+  '机房',
+  '网络机房',
+  '配电室',
+  '消控室',
+  '接待区',
+  '档案室',
+  '资料室',
+  '保密室',
+  '财务室',
+  '总经理办'
+]
+
+// 获取要显示的房间列表（fallback 到 demo 数据确保总有多房间数据）
+const roomNames = computed(() => {
+  const floorRooms = currentFloor.value?.roomNames
+  return Array.isArray(floorRooms) && floorRooms.length > 1 ? floorRooms : DEMO_ROOM_NAMES
 })
 
-// ---------- 楼层级图表 ----------
-const roomChart = computed(() => {
-  const names = currentFloor.value?.roomNames || []
-  const arr = names.map((n) => ({ label: n, value: rooms.value[n]?.meshCount ?? 0 }))
-  const max = Math.max(1, ...arr.map((a) => a.value))
-  return arr.map((a) => ({ ...a, pct: (a.value / max) * 100 }))
+const seedOf = (name, key) => {
+  const s = name + '|' + key
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) h = ((h ^ s.charCodeAt(i)) * 16777619) >>> 0
+  return h
+}
+const rand01 = (name, key) => seedOf(name, key) / 0xffffffff
+
+const statusText = {
+  normal: 'text-cyan-50',
+  warning: 'text-amber-300',
+  danger: 'text-rose-400'
+}
+
+const tempHumidityRows = computed(() =>
+  roomNames.value.map((name) => {
+    const t = 20 + rand01(name, 'temp') * 10
+    const h = 30 + rand01(name, 'hum') * 50
+    return {
+      name,
+      temp: t.toFixed(1),
+      tempStatus: t >= 28 ? 'danger' : t >= 26 ? 'warning' : 'normal',
+      humidity: h.toFixed(0),
+      humStatus: h >= 70 || h < 35 ? 'warning' : 'normal'
+    }
+  })
+)
+
+const co2Rows = computed(() =>
+  roomNames.value.map((name) => {
+    const v = 400 + Math.floor(rand01(name, 'co2') * 1300)
+    return {
+      name,
+      value: v,
+      status: v >= 1500 ? 'danger' : v >= 1000 ? 'warning' : 'normal'
+    }
+  })
+)
+
+const irRows = computed(() =>
+  roomNames.value.map((name) => {
+    const occupied = seedOf(name, 'ir') % 3 !== 0
+    const lastSeen = Math.floor(rand01(name, 'last') * 58) + 1
+    return { name, occupied, lastSeen }
+  })
+)
+
+// ---------- 楼层级 · 温湿度散点图 ----------
+const tooltipStyle = {
+  backgroundColor: 'rgba(6,10,29,0.92)',
+  borderColor: 'rgba(19,234,235,0.5)',
+  borderWidth: 1,
+  textStyle: { color: '#b6f5fc', fontSize: 12 },
+  extraCssText: 'box-shadow: 0 0 12px rgba(19,234,235,0.25)'
+}
+
+const axisBase = {
+  axisLine: { lineStyle: { color: 'rgba(19,234,235,0.25)' } },
+  axisTick: { lineStyle: { color: 'rgba(19,234,235,0.25)' } },
+  axisLabel: { color: 'rgba(182,245,252,0.65)', fontSize: 10 },
+  splitLine: { lineStyle: { color: 'rgba(19,234,235,0.08)' } }
+}
+
+const scatterPoints = computed(() =>
+  tempHumidityRows.value.map((r) => {
+    const color =
+      r.tempStatus === 'danger' || r.humStatus === 'danger'
+        ? '#fb7185'
+        : r.tempStatus === 'warning' || r.humStatus === 'warning'
+          ? '#fcd34d'
+          : '#13eaeb'
+    return {
+      name: r.name,
+      value: [parseFloat(r.temp), parseFloat(r.humidity)],
+      color,
+      itemStyle: { color }
+    }
+  })
+)
+
+const scatterOption = computed(() => ({
+  grid: { left: 30, right: 0, top: 2, bottom: 30 },
+  tooltip: {
+    trigger: 'item',
+    ...tooltipStyle,
+    formatter: (p) => {
+      const color = p.data.color || '#13eaeb'
+      const icon = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>`
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.data.name}</div>` +
+        `<div style="margin-bottom:2px;">${icon}<span>温度</span><span style="margin-left:1.5em;color:${color};font-family:monospace;">${p.data.value[0].toFixed(1)}°C</span></div>` +
+        `<div>${icon}<span>湿度</span><span style="margin-left:1.5em;color:${color};font-family:monospace;">${p.data.value[1].toFixed(0)}%</span></div>`
+      )
+    }
+  },
+  xAxis: {
+    type: 'value',
+    name: '温度 °C',
+    nameLocation: 'middle',
+    nameGap: 18,
+    nameTextStyle: { color: 'rgba(182,245,252,0.5)', fontSize: 10 },
+    min: 18,
+    max: 32,
+    ...axisBase
+  },
+  yAxis: {
+    type: 'value',
+    name: '湿度 %',
+    nameLocation: 'middle',
+    nameGap: 28,
+    nameTextStyle: { color: 'rgba(182,245,252,0.5)', fontSize: 10 },
+    min: 20,
+    max: 90,
+    ...axisBase
+  },
+  series: [
+    {
+      type: 'scatter',
+      data: scatterPoints.value,
+      symbolSize: 14,
+      emphasis: { scale: 1.6, itemStyle: { borderColor: '#13eaeb', borderWidth: 2 } },
+      // 舒适区背景 22-26°C, 40-60%
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.35)', borderWidth: 1 },
+        label: {
+          show: true,
+          position: 'insideTop',
+          formatter: '舒适区',
+          color: 'rgba(110,231,183,0.8)',
+          fontSize: 10
+        },
+        data: [
+          [
+            { xAxis: 22, yAxis: 40 },
+            { xAxis: 26, yAxis: 60 }
+          ]
+        ]
+      }
+    }
+  ]
+}))
+
+const onScatterClick = (params) => {
+  const name = params?.data?.name
+  if (name) store.enterRoom(name)
+}
+
+// ---------- 楼层级 · 红外线 24h 活动热力图 ----------
+const HOURS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}`)
+
+const activityIntensity = (name, hour) => {
+  // 工作日典型: 9-12 / 14-17 高活跃；夜间 22-6 极低
+  let base = 0.1
+  if (hour >= 9 && hour <= 11) base = 0.7
+  else if (hour >= 14 && hour <= 17) base = 0.65
+  else if (hour >= 8 && hour <= 18) base = 0.4
+  else if (hour >= 19 && hour <= 21) base = 0.25
+  const noise = (rand01(name, `h${hour}`) - 0.5) * 0.35
+  return Math.max(0, Math.min(1, base + noise))
+}
+
+const heatmapData = computed(() => {
+  const data = []
+  roomNames.value.forEach((name, ri) => {
+    for (let h = 0; h < 24; h++) {
+      data.push([h, ri, Math.round(activityIntensity(name, h) * 100)])
+    }
+  })
+  return data
 })
+
+const heatmapOption = computed(() => {
+  return {
+    grid: { left: 60, right: 14, top: 16, bottom: 24 },
+    tooltip: {
+      ...tooltipStyle,
+      position: 'top',
+      confine: true,
+      formatter: (p) =>
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${roomNames.value[p.data[1]] ?? ''}</div>` +
+        `时段 <span style="font-family:monospace">${String(p.data[0]).padStart(2, '0')}:00</span><br/>` +
+        `活跃度 <span style="font-family:monospace">${p.data[2]}</span>`
+    },
+    xAxis: {
+      type: 'category',
+      data: HOURS,
+      ...axisBase,
+      axisLabel: { ...axisBase.axisLabel, interval: 3 },
+      splitArea: { show: false }
+    },
+    yAxis: {
+      type: 'category',
+      data: roomNames.value,
+      ...axisBase,
+      axisLabel: { ...axisBase.axisLabel, color: 'rgba(182,245,252,0.8)' },
+      splitArea: { show: false }
+    },
+    visualMap: {
+      min: 0,
+      max: 100,
+      show: false,
+      inRange: {
+        color: [
+          'rgba(19,234,235,0.06)',
+          'rgba(19,234,235,0.25)',
+          'rgba(252,211,77,0.55)',
+          'rgba(251,113,133,0.85)',
+          '#fb7185'
+        ]
+      }
+    },
+    series: [
+      {
+        type: 'heatmap',
+        data: heatmapData.value,
+        itemStyle: { borderColor: 'rgba(6,10,29,0.6)', borderWidth: 1 },
+        emphasis: { itemStyle: { borderColor: '#13eaeb', borderWidth: 1.5 } }
+      }
+    ]
+  }
+})
+
+const onHeatmapClick = (params) => {
+  const name = roomNames.value[params?.data?.[1]]
+  if (name) store.enterRoom(name)
+}
+
+const itemBase =
+  'flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-cyan-100 transition-colors hover:bg-primary/15'
+const itemActive = 'bg-primary/25 hover:bg-primary/25'
 
 const roomStats = computed(() => {
   const meshCount = currentRoom.value?.meshCount ?? 0
@@ -181,41 +449,85 @@ const filteredDevices = computed(() =>
 
     <!-- ========== 楼层级 ========== -->
     <template v-else-if="level === 'floor'">
-      <BasePanel :title="title">
-        <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
-          <div class="grid grid-cols-2 gap-2 px-1">
-            <div class="rounded bg-cyan-400/10 p-2">
-              <div class="text-sm text-cyan-200/70">组件</div>
-              <div class="text-xl font-bold text-cyan-50">{{ currentFloor?.meshCount ?? 0 }}</div>
-            </div>
-            <div class="rounded bg-cyan-400/10 p-2">
-              <div class="text-sm text-cyan-200/70">材质类</div>
-              <div class="text-xl font-bold text-cyan-50">{{ currentFloor?.materialCount ?? 0 }}</div>
-            </div>
-          </div>
-          <div class="text-sm text-cyan-200/70 px-1 pt-1">房间组件数</div>
-          <div v-if="!roomChart.length" class="text-cyan-200/50 px-1 text-sm">本层未侦测到房间</div>
-          <div v-for="row in roomChart" :key="row.label" class="px-1">
-            <div class="flex justify-between text-sm mb-0.5">
-              <span
-                :class="[
-                  'cursor-pointer hover:text-primary',
-                  selectedRoom === row.label ? 'text-primary font-semibold' : 'text-cyan-100'
-                ]"
-                @click="store.enterRoom(row.label)"
-              >
-                {{ row.label }}
-              </span>
-              <span class="font-mono text-cyan-200/70">{{ row.value }}</span>
-            </div>
-            <div class="h-2 rounded bg-cyan-400/10 overflow-hidden">
+      <!-- 温湿度散点 -->
+      <BasePanel title="温湿度监测">
+        <div v-if="!tempHumidityRows.length" class="px-2 py-1 text-sm text-cyan-200/50">本层未侦测到房间</div>
+        <EChart v-else :option="scatterOption" height="190px" @chart-click="onScatterClick" />
+        <div class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-between text-sm text-cyan-200/60">
+          <span class="flex items-center gap-1">
+            <span class="size-2 rounded-sm bg-emerald-400/40 border border-emerald-400/60"></span>
+            舒适区 22-26°C · 40-60%
+          </span>
+          <span class="flex items-center gap-1 text-cyan-200/50">
+            <Icon icon="lucide:mouse-pointer-click" class="text-primary" />
+            点击点进入房间
+          </span>
+        </div>
+      </BasePanel>
+
+      <!-- 二氧化碳 -->
+      <BasePanel title="二氧化碳监测" class="mt-5">
+        <div class="overflow-y-auto max-h-38">
+          <div v-if="!co2Rows.length" class="px-2 py-1 text-sm text-cyan-200/50">本层未侦测到房间</div>
+          <div
+            v-for="r in co2Rows"
+            :key="r.name"
+            :class="[itemBase, selectedRoom === r.name && itemActive]"
+            @click="store.enterRoom(r.name)"
+          >
+            <Icon icon="mdi:molecule-co2" :class="['text-base shrink-0', statusText[r.status]]" />
+            <span class="flex-1 truncate text-sm">{{ r.name }}</span>
+            <div class="flex-1 h-1.5 rounded bg-cyan-400/10 overflow-hidden">
               <div
-                class="h-full bg-linear-to-r from-emerald-300/60 to-emerald-400"
-                :style="{ width: row.pct + '%' }"
+                class="h-full transition-all"
+                :class="{
+                  'bg-emerald-400': r.status === 'normal',
+                  'bg-amber-300': r.status === 'warning',
+                  'bg-rose-400': r.status === 'danger'
+                }"
+                :style="{ width: Math.min(100, (r.value / 2000) * 100) + '%' }"
               ></div>
             </div>
+            <span :class="['font-mono text-sm shrink-0 w-16 text-right', statusText[r.status]]">{{ r.value }} ppm</span>
           </div>
         </div>
+      </BasePanel>
+
+      <!-- 红外线活动热力图 -->
+      <BasePanel title="红外线监测" class="mt-5">
+        <div v-if="!irRows.length" class="px-2 py-1 text-sm text-cyan-200/50">本层未侦测到房间</div>
+        <template v-else>
+          <div class="flex items-center justify-between text-sm text-cyan-200/70">
+            <span class="flex items-center gap-1">
+              <Icon icon="carbon:motion-sensor" class="text-primary text-base" />
+              房间 × 时段 活跃度
+            </span>
+            <span class="text-cyan-200/50">24h</span>
+          </div>
+          <div class="mt-1 overflow-y-auto max-h-41.75 rounded border border-primary/10 bg-primary/4 p-1">
+            <EChart
+              :option="heatmapOption"
+              :height="Math.max(200, Math.min(600, roomNames.length * 24 + 60)) + 'px'"
+              @chart-click="onHeatmapClick"
+            />
+          </div>
+          <div class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-between text-sm text-cyan-200/60">
+            <span class="flex items-center gap-1">
+              <Icon icon="mdi:account-group" class="text-primary text-base" />
+              当前活跃房间
+              <span class="font-mono text-cyan-100 ml-1">
+                {{ irRows.filter((r) => r.occupied).length }} / {{ roomNames.length }}
+              </span>
+            </span>
+            <span class="flex items-center gap-1 text-cyan-200/50">
+              <span class="text-sm mr-1">低</span>
+              <span class="h-2 w-3 rounded-sm bg-[rgba(19,234,235,0.25)] border border-primary/20"></span>
+              <span class="h-2 w-3 rounded-sm bg-amber-300/55"></span>
+              <span class="h-2 w-3 rounded-sm bg-rose-400"></span>
+              <span class="text-sm ml-1">高</span>
+            </span>
+          </div>
+        </template>
       </BasePanel>
     </template>
 
