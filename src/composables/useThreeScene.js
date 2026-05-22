@@ -351,9 +351,12 @@ export function createThreeScene(container, store) {
   function focusFloor(index) {
     if (!building || !floorGroups[index]) return
     resetMeshAppearance()
+    // 先按透明模式重设基线：避免 resetMeshAppearance 把目标层冲为 opacity=1
+    // 导致动画过程中目标层先变不透明、动画结束才突然回到透明的闪烁
+    reapplyTransparent()
     animateExplode(true)
 
-    // 动画途中淡出其它层，动画完成后直接隐藏
+    // 动画途中淡出其它层（gsap 从当前 opacity 起 tween：透明模式下 0.25→0，否则 1→0）
     floorGroups.forEach((floor, i) => {
       if (i === index) return
       floor.forEach((m) => {
@@ -368,8 +371,6 @@ export function createThreeScene(container, store) {
         if (i === index) return
         floor.forEach((m) => (m.visible = false))
       })
-      // 其它层隐藏后，仅对目标层重新套用透明，避免与淡出动画冲突
-      reapplyTransparent()
     }, 950)
 
     // 聚焦目标层（用爆炸后的盒子）
