@@ -1,0 +1,63 @@
+<script setup>
+import BasePanel from '@/components/ui/BasePanel.vue'
+import MetricCard from '@/components/ui/MetricCard.vue'
+import GaugeRing from '@/components/ui/GaugeRing.vue'
+import EChart from '@/components/ui/EChart.vue'
+import { useFloorData } from '@/composables/useFloorData.js'
+
+const {
+  envSensors, energyDevices, energyTotal, energyOnlineSummary,
+  envSensorPieOption, energyDeviceBarOption, floorEnergyTrendOption
+} = useFloorData()
+</script>
+
+<template>
+  <BasePanel title="环境传感器设备">
+    <EChart :option="envSensorPieOption" height="140px" />
+  </BasePanel>
+
+  <BasePanel title="能耗监测设备" class="mt-5">
+    <div class="flex items-center justify-center gap-3 pb-2 mb-2 border-b border-primary/20">
+      <div class="text-cyan-200/70">整体在线率</div>
+      <GaugeRing
+        :value="energyOnlineSummary.ratio"
+        :max="100"
+        unit="%"
+        :size="64"
+        :status="energyOnlineSummary.status"
+        inline
+      />
+      <div class="text-sm leading-tight">
+        <div class="text-cyan-100">
+          <span class="font-mono text-lg font-semibold text-emerald-300">{{ energyOnlineSummary.online }}</span>
+          <span class="text-cyan-200/60"> / {{ energyOnlineSummary.total }} 台在线</span>
+        </div>
+        <div class="text-cyan-200/60">
+          离线 <span class="font-mono text-rose-400">{{ energyOnlineSummary.total - energyOnlineSummary.online }}</span> 台
+        </div>
+      </div>
+    </div>
+    <EChart :option="energyDeviceBarOption" height="145px" />
+  </BasePanel>
+
+  <BasePanel title="能耗监测总量" class="mt-5">
+    <div class="grid grid-cols-3 gap-2">
+      <MetricCard
+        v-for="e in energyTotal"
+        :key="e.label"
+        :icon="e.icon"
+        :label="e.label"
+        :value="e.value"
+        :unit="e.unit"
+        :status="e.status"
+      />
+    </div>
+    <div class="mt-3 pt-3 border-t border-primary/20">
+      <div class="flex items-center gap-1 text-sm text-cyan-200/60 mb-1">
+        <Icon icon="mdi:chart-areaspline" class="text-primary text-base" />
+        24小时分类能耗趋势
+      </div>
+      <EChart :option="floorEnergyTrendOption" height="130px" />
+    </div>
+  </BasePanel>
+</template>
