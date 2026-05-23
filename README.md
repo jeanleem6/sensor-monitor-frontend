@@ -68,3 +68,24 @@
   1. 房间温度数据（点击查看历史数据）
   2. 房间湿度数据（点击查看历史数据）
   3. 房间二氧化碳数据（点击查看历史数据）
+
+---
+
+## Nginx 服务器配置
+
+```nginx
+server {
+    listen       {端口};                   # 如: 80
+    server_name  {域名/IP/localhost};
+
+    location / {
+       root   {站点路径};                  # 比如: E:/wwwroot/cq-ust
+       try_files $uri $uri/ /index.html;  # 重要：必须保留
+    }
+}
+```
+
+## 其它服务器配置
+
+- [IIS 配置](https://router.vuejs.org/zh/guide/essentials/history-mode.html#Internet-Information-Services-IIS-)
+- [Apache 配置](https://router.vuejs.org/zh/guide/essentials/history-mode.html#Apache)
