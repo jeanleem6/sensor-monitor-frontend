@@ -4,12 +4,11 @@ import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import GaugeRing from '@/components/ui/GaugeRing.vue'
 import EChart from '@/components/ui/EChart.vue'
 
 const store = useViewerStore()
-const { level, floors, currentFloor, currentRoom, selectedRoom } = storeToRefs(store)
-
-const title = computed(() => '房间统计')
+const { level, currentFloor, selectedRoom } = storeToRefs(store)
 
 // ---------- 楼层级 · 各房间传感器 DEMO 数据 ----------
 // 当模型无房间数据时的 fallback 房间列表
@@ -289,19 +288,445 @@ const itemBase =
   'flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-cyan-100 transition-colors hover:bg-primary/15'
 const itemActive = 'bg-primary/25 hover:bg-primary/25'
 
-const roomStats = computed(() => {
-  const meshCount = currentRoom.value?.meshCount ?? 0
-  return [
-    { label: '组件总数', value: meshCount },
-    { label: '所属楼层', value: currentFloor.value?.name ?? '—' },
+// ---------- 房间级 DEMO 数据 ----------
+const tempModal = ref(false)
+const humModal = ref(false)
+const co2Modal = ref(false)
+
+const DAYS30 = Array.from({ length: 30 }, (_, d) => {
+  const dt = new Date(2026, 4, 23 - 29 + d)
+  return `${dt.getMonth() + 1}/${dt.getDate()}`
+})
+
+const rrSeed = (key) => rand01(selectedRoom.value || 'room', key)
+const NOW_HOUR = new Date().getHours()
+
+// ---- 温度 ----
+const tempHourly = computed(() =>
+  HOURS.map((_, h) => {
+    const r = rrSeed(`t_h${h}`)
+    if (h < 6) return +(18 + r * 3).toFixed(1)
+    if (h < 8) return +(20 + r * 4).toFixed(1)
+    if (h <= 14) return +(23 + r * 6).toFixed(1)
+    if (h <= 20) return +(22 + r * 4).toFixed(1)
+    return +(19 + r * 3).toFixed(1)
+  })
+)
+const tempCurrent = computed(() => +tempHourly.value[NOW_HOUR])
+const tempStatus = computed(() => (tempCurrent.value >= 28 ? 'danger' : tempCurrent.value >= 26 ? 'warning' : 'normal'))
+const tempHistory30 = computed(() =>
+  DAYS30.map((_, d) => {
+    const avg = +(20 + rrSeed(`t_avg${d}`) * 9).toFixed(1)
+    const spread = +(2 + rrSeed(`t_sp${d}`) * 3).toFixed(1)
+    return { avg, min: +(avg - spread * 0.6).toFixed(1), max: +(avg + spread * 0.4).toFixed(1) }
+  })
+)
+const tempHistoryStat = computed(() => {
+  const avgs = tempHistory30.value.map((d) => d.avg)
+  return {
+    today: tempCurrent.value.toFixed(1),
+    max: Math.max(...tempHistory30.value.map((d) => d.max)).toFixed(1),
+    min: Math.min(...tempHistory30.value.map((d) => d.min)).toFixed(1),
+    avg: (avgs.reduce((a, b) => a + b, 0) / avgs.length).toFixed(1)
+  }
+})
+
+// ---- 湿度 ----
+const humHourly = computed(() =>
+  HOURS.map((_, h) => {
+    const r = rrSeed(`hum_h${h}`)
+    if (h < 8) return Math.round(60 + r * 15)
+    if (h <= 20) return Math.round(42 + r * 22)
+    return Math.round(55 + r * 15)
+  })
+)
+const humCurrent = computed(() => humHourly.value[NOW_HOUR])
+const humStatus = computed(() => (humCurrent.value >= 70 || humCurrent.value < 35 ? 'warning' : 'normal'))
+const humHistory30 = computed(() => DAYS30.map((_, d) => Math.round(40 + rrSeed(`hum_d${d}`) * 35)))
+const humHistoryStat = computed(() => {
+  const v = humHistory30.value
+  return {
+    today: humCurrent.value,
+    max: Math.max(...v),
+    min: Math.min(...v),
+    avg: Math.round(v.reduce((a, b) => a + b, 0) / v.length)
+  }
+})
+
+// ---- 二氧化碳 ----
+const co2Hourly = computed(() =>
+  HOURS.map((_, h) => {
+    const r = rrSeed(`co2_h${h}`)
+    if (h < 6) return Math.round(400 + r * 80)
+    if (h < 8) return Math.round(500 + r * 200)
+    if (h >= 9 && h <= 11) return Math.round(900 + r * 500)
+    if (h >= 14 && h <= 17) return Math.round(850 + r * 450)
+    if (h <= 20) return Math.round(600 + r * 300)
+    return Math.round(450 + r * 150)
+  })
+)
+const co2Current = computed(() => co2Hourly.value[NOW_HOUR])
+const co2Status = computed(() =>
+  co2Current.value >= 1500 ? 'danger' : co2Current.value >= 1000 ? 'warning' : 'normal'
+)
+const co2History30 = computed(() => DAYS30.map((_, d) => Math.round(500 + rrSeed(`co2_d${d}`) * 900)))
+const co2HistoryStat = computed(() => {
+  const v = co2History30.value
+  return {
+    today: co2Current.value,
+    max: Math.max(...v),
+    min: Math.min(...v),
+    avg: Math.round(v.reduce((a, b) => a + b, 0) / v.length)
+  }
+})
+
+// ---- 图表：温度 ----
+const tempTrendOpt = computed(() => ({
+  grid: { left: 28, right: 34, top: 12, bottom: 22 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const p = params[0]
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.axisValueLabel}:00</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${p.marker}温度</span><span style="margin-left:auto;font-family:monospace;color:#fb7185">${p.value}°C</span></div>`
+      )
+    }
+  },
+  xAxis: { type: 'category', data: HOURS, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 5 } },
+  yAxis: { type: 'value', min: 15, max: 35, ...axisBase, splitNumber: 3 },
+  series: [
     {
-      label: '相对占比',
-      value: floors.value.length
-        ? `${((meshCount / Math.max(1, currentFloor.value?.meshCount ?? 1)) * 100).toFixed(1)}%`
-        : '—'
+      type: 'line',
+      data: tempHourly.value,
+      color: '#fb7185',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { width: 1.5 },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(251,113,133,0.3)' },
+            { offset: 1, color: 'rgba(251,113,133,0)' }
+          ]
+        }
+      },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        data: [
+          {
+            yAxis: 22,
+            lineStyle: { color: 'rgba(19,234,235,0.35)', type: 'dashed', width: 1 },
+            label: { formatter: '22°C', color: 'rgba(19,234,235,0.6)', fontSize: 10 }
+          },
+          {
+            yAxis: 26,
+            lineStyle: { color: 'rgba(19,234,235,0.35)', type: 'dashed', width: 1 },
+            label: { formatter: '26°C', color: 'rgba(19,234,235,0.6)', fontSize: 10 }
+          }
+        ]
+      }
     }
   ]
-})
+}))
+
+const tempHistoryOpt = computed(() => ({
+  grid: { left: 36, right: 8, top: 28, bottom: 44 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const [minS, rangeS, avgS] = params
+      const dayMin = +minS.data
+      const dayMax = +(dayMin + rangeS.data).toFixed(1)
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${minS.axisValueLabel}</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>最高</span><span style="margin-left:auto;font-family:monospace;color:#fb7185">${dayMax}°C</span></div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>均值</span><span style="margin-left:auto;font-family:monospace;color:#fcd34d">${+avgS.data}°C</span></div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>最低</span><span style="margin-left:auto;font-family:monospace;color:#60a5fa">${dayMin}°C</span></div>`
+      )
+    }
+  },
+  legend: {
+    top: 0,
+    left: 'center',
+    icon: 'roundRect',
+    itemWidth: 16,
+    itemHeight: 6,
+    textStyle: { color: 'rgba(182,245,252,0.8)', fontSize: 12 },
+    data: ['高低温范围', '日均温']
+  },
+  xAxis: { type: 'category', data: DAYS30, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 4, rotate: 30 } },
+  yAxis: {
+    type: 'value',
+    name: '°C',
+    nameTextStyle: { color: 'rgba(182,245,252,0.5)', fontSize: 10 },
+    ...axisBase,
+    splitNumber: 4
+  },
+  series: [
+    {
+      name: '最低',
+      type: 'line',
+      data: tempHistory30.value.map((d) => d.min),
+      stack: 'band',
+      lineStyle: { opacity: 0 },
+      symbol: 'none',
+      color: 'transparent',
+      legendHoverLink: false,
+      showSymbol: false,
+      silent: true
+    },
+    {
+      name: '高低温范围',
+      type: 'line',
+      data: tempHistory30.value.map((d) => +(d.max - d.min).toFixed(1)),
+      stack: 'band',
+      lineStyle: { opacity: 0 },
+      symbol: 'none',
+      areaStyle: { color: 'rgba(251,113,133,0.18)' },
+      itemStyle: { color: 'rgba(251,113,133,0.5)' }
+    },
+    {
+      name: '日均温',
+      type: 'line',
+      data: tempHistory30.value.map((d) => d.avg),
+      color: '#fcd34d',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
+      lineStyle: { width: 2 }
+    }
+  ]
+}))
+
+// ---- 图表：湿度 ----
+const humTrendOpt = computed(() => ({
+  grid: { left: 28, right: 8, top: 6, bottom: 22 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const p = params[0]
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.axisValueLabel}:00</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${p.marker}湿度</span><span style="margin-left:auto;font-family:monospace;color:#60a5fa">${p.value}%</span></div>`
+      )
+    }
+  },
+  xAxis: { type: 'category', data: HOURS, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 5 } },
+  yAxis: { type: 'value', min: 20, max: 90, ...axisBase, splitNumber: 3 },
+  series: [
+    {
+      type: 'line',
+      data: humHourly.value,
+      color: '#60a5fa',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { width: 1.5 },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(96,165,250,0.3)' },
+            { offset: 1, color: 'rgba(96,165,250,0)' }
+          ]
+        }
+      },
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(96,165,250,0.07)', borderColor: 'rgba(96,165,250,0.25)', borderWidth: 1 },
+        label: { show: true, position: 'insideTop', formatter: '适宜', color: 'rgba(147,197,253,0.7)', fontSize: 10 },
+        data: [[{ yAxis: 40 }, { yAxis: 60 }]]
+      }
+    }
+  ]
+}))
+
+const humHistoryOpt = computed(() => ({
+  grid: { left: 36, right: 48, top: 28, bottom: 44 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const p = params[0]
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.axisValueLabel}</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${p.marker}日均湿度</span><span style="margin-left:auto;font-family:monospace;color:#60a5fa">${p.value}%</span></div>`
+      )
+    }
+  },
+  xAxis: { type: 'category', data: DAYS30, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 4, rotate: 30 } },
+  yAxis: {
+    type: 'value',
+    name: '%',
+    nameTextStyle: { color: 'rgba(182,245,252,0.5)', fontSize: 10 },
+    min: 20,
+    max: 90,
+    ...axisBase,
+    splitNumber: 4
+  },
+  series: [
+    {
+      name: '日均湿度',
+      type: 'line',
+      data: humHistory30.value,
+      color: '#60a5fa',
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
+      lineStyle: { width: 2 },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(96,165,250,0.25)' },
+            { offset: 1, color: 'rgba(96,165,250,0)' }
+          ]
+        }
+      },
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(96,165,250,0.07)', borderColor: 'rgba(96,165,250,0.2)', borderWidth: 1 },
+        data: [[{ yAxis: 40 }, { yAxis: 60 }]]
+      },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        lineStyle: { color: '#fcd34d', type: 'dashed', width: 1 },
+        label: { position: 'end', formatter: (p) => `均 ${Math.round(+p.value)}%`, color: '#fcd34d', fontSize: 11 },
+        data: [{ type: 'average' }]
+      }
+    }
+  ]
+}))
+
+// ---- 图表：CO₂ ----
+const co2TrendOpt = computed(() => ({
+  grid: { left: 36, right: 34, top: 12, bottom: 22 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const p = params[0]
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.axisValueLabel}:00</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${p.marker}CO₂ 浓度</span><span style="margin-left:auto;font-family:monospace;color:#34d399">${p.value} ppm</span></div>`
+      )
+    }
+  },
+  xAxis: { type: 'category', data: HOURS, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 5 } },
+  yAxis: { type: 'value', ...axisBase, splitNumber: 3 },
+  series: [
+    {
+      type: 'line',
+      data: co2Hourly.value,
+      color: '#34d399',
+      smooth: true,
+      symbol: 'none',
+      lineStyle: { width: 1.5 },
+      areaStyle: {
+        color: {
+          type: 'linear',
+          x: 0,
+          y: 0,
+          x2: 0,
+          y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(52,211,153,0.3)' },
+            { offset: 1, color: 'rgba(52,211,153,0)' }
+          ]
+        }
+      },
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        data: [
+          {
+            yAxis: 1000,
+            lineStyle: { color: '#fcd34d', type: 'dashed', width: 1 },
+            label: { formatter: '1000', color: '#fcd34d', fontSize: 10 }
+          },
+          {
+            yAxis: 1500,
+            lineStyle: { color: '#fb7185', type: 'dashed', width: 1 },
+            label: { formatter: '1500', color: '#fb7185', fontSize: 10 }
+          }
+        ]
+      }
+    }
+  ]
+}))
+
+const co2HistoryOpt = computed(() => ({
+  grid: { left: 40, right: 48, top: 28, bottom: 44 },
+  tooltip: {
+    trigger: 'axis',
+    ...tooltipStyle,
+    formatter: (params) => {
+      const p = params[0]
+      return (
+        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${p.axisValueLabel}</div>` +
+        `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${p.marker}CO₂ 日均浓度</span><span style="margin-left:auto;font-family:monospace;color:#34d399">${p.value} ppm</span></div>`
+      )
+    }
+  },
+  xAxis: { type: 'category', data: DAYS30, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 4, rotate: 30 } },
+  yAxis: {
+    type: 'value',
+    name: 'ppm',
+    nameTextStyle: { color: 'rgba(182,245,252,0.5)', fontSize: 10 },
+    ...axisBase,
+    splitNumber: 4
+  },
+  series: [
+    {
+      name: 'CO₂ 日均浓度',
+      type: 'bar',
+      data: co2History30.value.map((v, i) => ({
+        value: v,
+        itemStyle: {
+          color:
+            i === 29
+              ? v >= 1500
+                ? '#fb7185'
+                : v >= 1000
+                  ? '#fcd34d'
+                  : '#34d399'
+              : v >= 1500
+                ? 'rgba(251,113,133,0.55)'
+                : v >= 1000
+                  ? 'rgba(252,211,77,0.45)'
+                  : 'rgba(52,211,153,0.45)',
+          borderRadius: [2, 2, 0, 0]
+        }
+      })),
+      barWidth: '60%',
+      markLine: {
+        silent: true,
+        symbol: 'none',
+        lineStyle: { color: '#fcd34d', type: 'dashed', width: 1 },
+        label: { position: 'end', formatter: (p) => `均 ${Math.round(+p.value)}`, color: '#fcd34d', fontSize: 11 },
+        data: [{ type: 'average' }]
+      }
+    }
+  ]
+}))
 
 // ---------- 楼栋级 DEMO 数据 ----------
 const cameras = [
@@ -499,7 +924,7 @@ const filteredDevices = computed(() =>
         <template v-else>
           <div class="flex items-center justify-between text-sm text-cyan-200/70">
             <span class="flex items-center gap-1">
-              <Icon icon="carbon:motion-sensor" class="text-primary text-base" />
+              <Icon icon="mdi:motion-sensor" class="text-primary text-base" />
               房间 × 时段 活跃度
             </span>
             <span class="text-cyan-200/50">24h</span>
@@ -533,23 +958,217 @@ const filteredDevices = computed(() =>
 
     <!-- ========== 房间级 ========== -->
     <template v-else>
-      <BasePanel :title="title">
-        <div class="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
-          <div
-            v-for="s in roomStats"
-            :key="s.label"
-            class="rounded bg-cyan-400/10 p-2 flex justify-between items-baseline"
-          >
-            <span class="text-sm text-cyan-200/70">{{ s.label }}</span>
-            <span class="text-lg font-bold text-cyan-50">{{ s.value }}</span>
-          </div>
-          <div class="border-t border-cyan-400/25 pt-2 mt-2 px-1 text-sm text-cyan-200/70">
-            提示：按
-            <kbd class="px-1 py-0.5 rounded bg-cyan-400/15 text-cyan-100 font-mono">Esc</kbd>
-            返回上一层
+      <!-- 温度监测 -->
+      <BasePanel title="温度监测">
+        <div class="flex items-center gap-3 mb-2">
+          <GaugeRing :value="+tempCurrent.toFixed(1)" :max="35" unit="°C" :status="tempStatus" :size="60" />
+          <div class="flex-1 text-sm space-y-1">
+            <div class="flex justify-between text-cyan-200/70">
+              <span>当前温度</span>
+              <span class="flex items-baseline gap-1.5">
+                <span
+                  :class="[
+                    'font-mono font-bold text-base',
+                    tempStatus === 'danger'
+                      ? 'text-rose-400'
+                      : tempStatus === 'warning'
+                        ? 'text-amber-300'
+                        : 'text-cyan-50'
+                  ]"
+                  >{{ tempCurrent.toFixed(1) }}°C</span
+                >
+                <span
+                  :class="[
+                    'text-xs',
+                    tempStatus === 'danger'
+                      ? 'text-rose-400'
+                      : tempStatus === 'warning'
+                        ? 'text-amber-300'
+                        : 'text-emerald-300'
+                  ]"
+                  >{{ tempStatus === 'danger' ? '过高' : tempStatus === 'warning' ? '偏高' : '正常' }}</span
+                >
+              </span>
+            </div>
+            <div class="flex justify-between text-cyan-200/60">
+              <span>舒适区间</span>
+              <span class="font-mono">22 – 26°C</span>
+            </div>
           </div>
         </div>
+        <div class="flex items-center gap-1 text-sm text-cyan-200/60">
+          <Icon icon="mdi:thermometer" class="text-rose-400 text-base" />
+          24小时温度曲线
+        </div>
+        <EChart :option="tempTrendOpt" height="77px" />
+        <div
+          class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
+          @click="tempModal = true"
+        >
+          <Icon icon="lucide:history" class="text-sm" />
+          <span>查看历史数据</span>
+          <Icon icon="lucide:chevron-right" class="text-sm" />
+        </div>
       </BasePanel>
+
+      <!-- 湿度监测 -->
+      <BasePanel title="湿度监测" class="mt-5">
+        <div class="flex items-center gap-3 mb-2">
+          <GaugeRing :value="humCurrent" :max="100" unit="%" :status="humStatus" :size="60" inline />
+          <div class="flex-1 text-sm space-y-1">
+            <div class="flex justify-between text-cyan-200/70">
+              <span>当前湿度</span>
+              <span class="flex items-baseline gap-1.5">
+                <span
+                  :class="[
+                    'font-mono font-bold text-base',
+                    humStatus === 'warning' ? 'text-amber-300' : 'text-cyan-50'
+                  ]"
+                  >{{ humCurrent }}%</span
+                >
+                <span :class="['text-xs', humStatus === 'warning' ? 'text-amber-300' : 'text-emerald-300']">{{
+                  humStatus === 'warning' ? '异常' : '正常'
+                }}</span>
+              </span>
+            </div>
+            <div class="flex justify-between text-cyan-200/60">
+              <span>适宜区间</span>
+              <span class="font-mono">40 – 60%</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 text-sm text-cyan-200/60">
+          <Icon icon="mdi:water-percent" class="text-blue-400 text-base" />
+          24小时湿度曲线
+        </div>
+        <EChart :option="humTrendOpt" height="78px" />
+        <div
+          class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
+          @click="humModal = true"
+        >
+          <Icon icon="lucide:history" class="text-sm" />
+          <span>查看历史数据</span>
+          <Icon icon="lucide:chevron-right" class="text-sm" />
+        </div>
+      </BasePanel>
+
+      <!-- 二氧化碳监测 -->
+      <BasePanel title="二氧化碳监测" class="mt-5">
+        <div class="flex items-center gap-3 mb-2">
+          <GaugeRing :value="co2Current" :max="2000" unit="ppm" :status="co2Status" :size="60" />
+          <div class="flex-1 text-sm space-y-0.5">
+            <div class="flex justify-between text-cyan-200/70">
+              <span>当前浓度</span>
+              <span class="flex items-baseline gap-1.5">
+                <span
+                  :class="[
+                    'font-mono font-bold text-base',
+                    co2Status === 'danger'
+                      ? 'text-rose-400'
+                      : co2Status === 'warning'
+                        ? 'text-amber-300'
+                        : 'text-cyan-50'
+                  ]"
+                  >{{ co2Current }} ppm</span
+                >
+              </span>
+            </div>
+            <div class="flex items-center justify-between gap-1">
+              <div class="flex items-center gap-1">
+                <span class="text-amber-300/80">预警</span>/
+                <span class="text-rose-400/80">危险</span>
+              </div>
+              <div class="flex items-center justify-between gap-1">
+                <span class="font-mono text-amber-300"> 1000ppm</span>/
+                <span class="font-mono text-rose-400"> 1500ppm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 text-sm text-cyan-200/60">
+          <Icon icon="mdi:molecule-co2" class="text-emerald-400 text-base" />
+          24小时 CO₂ 曲线
+        </div>
+        <EChart :option="co2TrendOpt" height="77px" />
+        <div
+          class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
+          @click="co2Modal = true"
+        >
+          <Icon icon="lucide:history" class="text-sm" />
+          <span>查看历史数据</span>
+          <Icon icon="lucide:chevron-right" class="text-sm" />
+        </div>
+      </BasePanel>
+
+      <!-- ---- 历史数据 Modals ---- -->
+      <BaseModal v-model="tempModal" title="温度历史数据" icon="mdi:thermometer-lines" width="700px">
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div
+            v-for="s in [
+              { key: 'today', label: '今日', unit: '°C', cls: 'text-primary' },
+              { key: 'max', label: '30日最高', unit: '°C', cls: 'text-rose-400' },
+              { key: 'min', label: '30日最低', unit: '°C', cls: 'text-sky-300' },
+              { key: 'avg', label: '30日均值', unit: '°C', cls: 'text-amber-300' }
+            ]"
+            :key="s.key"
+            class="rounded border border-primary/20 bg-primary/6 p-2.5 text-center"
+          >
+            <div class="text-sm text-cyan-200/60">{{ s.label }}</div>
+            <div :class="['text-xl font-bold font-mono mt-1', s.cls]">{{ tempHistoryStat[s.key] }}</div>
+            <div class="text-sm text-cyan-200/50">{{ s.unit }}</div>
+          </div>
+        </div>
+        <EChart :option="tempHistoryOpt" height="260px" />
+        <template #footer>
+          <button class="btn" @click="tempModal = false">关闭</button>
+        </template>
+      </BaseModal>
+
+      <BaseModal v-model="humModal" title="湿度历史数据" icon="mdi:water-percent" width="700px">
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div
+            v-for="s in [
+              { key: 'today', label: '今日', unit: '%', cls: 'text-primary' },
+              { key: 'max', label: '30日最高', unit: '%', cls: 'text-rose-400' },
+              { key: 'min', label: '30日最低', unit: '%', cls: 'text-emerald-300' },
+              { key: 'avg', label: '30日均值', unit: '%', cls: 'text-cyan-50' }
+            ]"
+            :key="s.key"
+            class="rounded border border-primary/20 bg-primary/6 p-2.5 text-center"
+          >
+            <div class="text-sm text-cyan-200/60">{{ s.label }}</div>
+            <div :class="['text-xl font-bold font-mono mt-1', s.cls]">{{ humHistoryStat[s.key] }}</div>
+            <div class="text-sm text-cyan-200/50">{{ s.unit }}</div>
+          </div>
+        </div>
+        <EChart :option="humHistoryOpt" height="260px" />
+        <template #footer>
+          <button class="btn" @click="humModal = false">关闭</button>
+        </template>
+      </BaseModal>
+
+      <BaseModal v-model="co2Modal" title="二氧化碳历史数据" icon="mdi:molecule-co2" width="700px">
+        <div class="grid grid-cols-4 gap-3 mb-4">
+          <div
+            v-for="s in [
+              { key: 'today', label: '今日', unit: 'ppm', cls: 'text-primary' },
+              { key: 'max', label: '30日最高', unit: 'ppm', cls: 'text-rose-400' },
+              { key: 'min', label: '30日最低', unit: 'ppm', cls: 'text-emerald-300' },
+              { key: 'avg', label: '30日均值', unit: 'ppm', cls: 'text-cyan-50' }
+            ]"
+            :key="s.key"
+            class="rounded border border-primary/20 bg-primary/6 p-2.5 text-center"
+          >
+            <div class="text-sm text-cyan-200/60">{{ s.label }}</div>
+            <div :class="['text-xl font-bold font-mono mt-1', s.cls]">{{ co2HistoryStat[s.key] }}</div>
+            <div class="text-sm text-cyan-200/50">{{ s.unit }}</div>
+          </div>
+        </div>
+        <EChart :option="co2HistoryOpt" height="260px" />
+        <template #footer>
+          <button class="btn" @click="co2Modal = false">关闭</button>
+        </template>
+      </BaseModal>
     </template>
 
     <!-- ========== 摄像头视频 Modal ========== -->
