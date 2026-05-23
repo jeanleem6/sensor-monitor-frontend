@@ -10,7 +10,7 @@
  *   - chart-click: 透传 echarts click（包含 dataIndex / data / name 等）
  */
 import { ref, shallowRef, onMounted, onBeforeUnmount, watch } from 'vue'
-import * as echarts from 'echarts'
+import echarts from '@/plugins/echarts'
 
 const props = defineProps({
   option: { type: Object, required: true },

@@ -1,22 +1,18 @@
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import ViewerView from '@/views/ViewerView.vue'
-import GridView from '@/views/GridView.vue'
-
 export default [
   {
     path: '/',
-    component: DefaultLayout,
+    component: () => import('@/layouts/DefaultLayout.vue'),
     children: [
       {
         path: '',
         name: 'viewer',
-        component: ViewerView,
+        component: () => import('@/views/ViewerView.vue'),
         meta: { title: 'Dashboard' }
       },
       {
         path: 'grid',
         name: 'grid',
-        component: GridView,
+        component: () => import('@/views/GridView.vue'),
         meta: { title: 'Grid' }
       }
     ]
