@@ -9,7 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@iconify-json/carbon": "^1.2.22",
     "@iconify-json/lucide": "^1.2.108",
+    "@iconify-json/mdi": "^1.2.3",
     "@iconify/vue": "^5.0.1",
     "echarts": "^6.1.0",
     "gsap": "^3.14.2",

@@ -179,10 +179,24 @@
   resolved "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz"
   integrity sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==
 
+"@iconify-json/carbon@^1.2.22":
+  version "1.2.22"
+  resolved "https://registry.npmjs.org/@iconify-json/carbon/-/carbon-1.2.22.tgz"
+  integrity sha512-x/L1tVgBp6ailSU0b8QDlxM3MLLbrmzefoqOt1gpBbywTF3xNSKDcL/PrOoLGZHwoFsNXujg2xrCvYsAWpykgA==
+  dependencies:
+    "@iconify/types" "*"
+
 "@iconify-json/lucide@^1.2.108":
   version "1.2.108"
   resolved "https://registry.npmjs.org/@iconify-json/lucide/-/lucide-1.2.108.tgz"
   integrity sha512-jnmMx7xxShfsKeNNJhn47IKj3gD/AbRz+poKLIPn4rSIXw+yVbXCfUBXza/Jo9YIEEFajBk6Zayet8DqGCvX6w==
+  dependencies:
+    "@iconify/types" "*"
+
+"@iconify-json/mdi@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.npmjs.org/@iconify-json/mdi/-/mdi-1.2.3.tgz"
+  integrity sha512-O3cLwbDOK7NNDf2ihaQOH5F9JglnulNDFV7WprU2dSoZu3h3cWH//h74uQAB87brHmvFVxIOkuBX2sZSzYhScg==
   dependencies:
     "@iconify/types" "*"
 
@@ -585,7 +599,7 @@ detect-libc@^2.0.3:
 
 echarts@^6.1.0:
   version "6.1.0"
-  resolved "https://registry.yarnpkg.com/echarts/-/echarts-6.1.0.tgz#ae0f68590f5ebbd728d900907c27acde7c5456d1"
+  resolved "https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz"
   integrity sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==
   dependencies:
     tslib "2.3.0"
@@ -848,7 +862,7 @@ tinyglobby@^0.2.13:
 
 tslib@2.3.0:
   version "2.3.0"
-  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.3.0.tgz#803b8cdab3e12ba581a4ca41c8839bbb0dacb09e"
+  resolved "https://registry.npmjs.org/tslib/-/tslib-2.3.0.tgz"
   integrity sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==
 
 tslib@^2.4.0, tslib@^2.8.1:
@@ -895,7 +909,7 @@ vue@^3.5.13:
 
 zrender@6.1.0:
   version "6.1.0"
-  resolved "https://registry.yarnpkg.com/zrender/-/zrender-6.1.0.tgz#c3ef06e6426d5c28865b7183035680d685e00136"
+  resolved "https://registry.npmjs.org/zrender/-/zrender-6.1.0.tgz"
   integrity sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==
   dependencies:
     tslib "2.3.0"
