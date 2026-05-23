@@ -19,15 +19,15 @@ const metrics = computed(() => {
   if (level.value === 'floor') {
     return [
       { label: '楼层', value: currentFloor.value?.name ?? '—' },
-      { label: '房间', value: currentFloor.value?.roomNames.length ?? 0 }
+      { label: '房间数量', value: currentFloor.value?.roomNames.length ?? 0 }
       // { label: '组件', value: currentFloor.value?.meshCount ?? 0 },
       // { label: '材质', value: currentFloor.value?.materialCount ?? 0 }
     ]
   }
   return [
     { label: '房间', value: store.selectedRoom ?? '—' },
-    { label: '所属', value: currentFloor.value?.name ?? '—' },
-    { label: '组件', value: currentRoom.value?.meshCount ?? 0 }
+    { label: '所属楼层', value: currentFloor.value?.name ?? '—' }
+    // { label: '组件', value: currentRoom.value?.meshCount ?? 0 }
   ]
 })
 </script>
@@ -55,6 +55,10 @@ const metrics = computed(() => {
           {{ m.value }}
         </div>
       </div>
+    </div>
+
+    <div class="flex items-center">
+      <span class="p-3 text-xs text-cyan-200/50">按 <kbd>Esc</kbd> 返回上一层</span>
     </div>
 
     <!-- 视图控制 -->
