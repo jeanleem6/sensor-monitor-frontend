@@ -5,15 +5,21 @@ export default [
     children: [
       {
         path: '',
-        name: 'viewer',
-        component: () => import('@/views/ViewerView.vue'),
-        meta: { title: 'Dashboard' }
+        name: 'monitor',
+        component: () => import('@/views/MonitorView.vue'),
+        meta: { title: '建筑实时监测子系统' }
       },
       {
-        path: 'grid',
-        name: 'grid',
-        component: () => import('@/views/GridView.vue'),
-        meta: { title: 'Grid' }
+        path: 'lab-dayou',
+        name: 'lab-dayou',
+        component: () => import('@/views/LabDayouView.vue'),
+        meta: { title: '专业实验与教学子系统 · 大有' }
+      },
+      {
+        path: 'lab-chint',
+        name: 'lab-chint',
+        component: () => import('@/views/LabChintView.vue'),
+        meta: { title: '专业实验与教学子系统 · 正泰' }
       },
       {
         path: ':pathMatch(.*)*',
