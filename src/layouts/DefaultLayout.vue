@@ -1,5 +1,6 @@
 <script setup>
 import AppHeader from '@/components/layout/AppHeader.vue'
+import AppNavMenu from '@/components/layout/AppNavMenu.vue'
 </script>
 
 <template>
@@ -8,5 +9,6 @@ import AppHeader from '@/components/layout/AppHeader.vue'
   >
     <AppHeader />
     <router-view />
+    <AppNavMenu />
   </div>
 </template>
