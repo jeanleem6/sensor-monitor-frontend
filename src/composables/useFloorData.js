@@ -128,10 +128,16 @@ export function useFloorData() {
     grid: { left: 60, right: 14, top: 16, bottom: 24 },
     tooltip: {
       ...tooltipStyle, position: 'top', confine: true,
-      formatter: (p) =>
-        `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${roomNames.value[p.data[1]] ?? ''}</div>` +
-        `时段 <span style="font-family:monospace">${String(p.data[0]).padStart(2, '0')}:00</span><br/>` +
-        `活跃度 <span style="font-family:monospace">${p.data[2]}</span>`
+      formatter: (p) => {
+        const value = p.data[2]
+        const color = value >= 60 ? '#fb7185' : value >= 30 ? '#fcd34d' : '#13eaeb'
+        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;vertical-align:middle;"></span>`
+        return (
+          `<div style="font-weight:600;color:#13eaeb;margin-bottom:4px">${roomNames.value[p.data[1]] ?? ''}</div>` +
+          `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>时段</span><span style="margin-left:auto;font-family:monospace;color:#b6f5fc">${String(p.data[0]).padStart(2, '0')}:00</span></div>` +
+          `<div style="display:flex;align-items:center;gap:3em;line-height:1.6"><span>${dot}活跃度</span><span style="margin-left:auto;font-family:monospace;color:${color}">${value}</span></div>`
+        )
+      }
     },
     xAxis: { type: 'category', data: HOURS, ...axisBase, axisLabel: { ...axisBase.axisLabel, interval: 3 }, splitArea: { show: false } },
     yAxis: { type: 'category', data: roomNames.value, ...axisBase, axisLabel: { ...axisBase.axisLabel, color: 'rgba(182,245,252,0.8)' }, splitArea: { show: false } },
