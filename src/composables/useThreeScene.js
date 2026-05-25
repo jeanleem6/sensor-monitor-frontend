@@ -37,6 +37,23 @@ export function createThreeScene(container, store) {
   let isDragging = false
   const mouseDownPos = { x: 0, y: 0 }
 
+  // 视图切换中的延后任务（setTimeout / gsap tween）：用户快速连续切换层级时，
+  // 必须取消上一段还未完成的隐藏/淡出/相机动画，否则会覆盖新视图的状态
+  let pendingTimeouts = []
+
+  function cancelTransitions() {
+    pendingTimeouts.forEach(clearTimeout)
+    pendingTimeouts = []
+    if (!building) return
+    building.traverse((m) => {
+      if (!m.isMesh) return
+      gsap.killTweensOf(m.position)
+      eachMaterial(m, (mat) => gsap.killTweensOf(mat))
+    })
+    if (camera) gsap.killTweensOf(camera.position)
+    if (controls) gsap.killTweensOf(controls.target)
+  }
+
   // ---------- 初始化 ----------
   function init() {
     scene = new THREE.Scene()
@@ -338,6 +355,7 @@ export function createThreeScene(container, store) {
 
   function showBuilding() {
     if (!building) return
+    cancelTransitions()
     resetMeshAppearance()
     animateExplode(false)
     // 用静止盒子平滑动画镜头：避免读取仍在爆炸状态下的盒子导致中心偏移，
@@ -350,6 +368,7 @@ export function createThreeScene(container, store) {
   // 楼层爆炸 → 隐藏其它层 → 镜头聚焦
   function focusFloor(index) {
     if (!building || !floorGroups[index]) return
+    cancelTransitions()
     resetMeshAppearance()
     // 先按透明模式重设基线：避免 resetMeshAppearance 把目标层冲为 opacity=1
     // 导致动画过程中目标层先变不透明、动画结束才突然回到透明的闪烁
@@ -366,23 +385,28 @@ export function createThreeScene(container, store) {
         })
       })
     })
-    setTimeout(() => {
-      floorGroups.forEach((floor, i) => {
-        if (i === index) return
-        floor.forEach((m) => (m.visible = false))
-      })
-    }, 950)
+    pendingTimeouts.push(
+      setTimeout(() => {
+        floorGroups.forEach((floor, i) => {
+          if (i === index) return
+          floor.forEach((m) => (m.visible = false))
+        })
+      }, 950)
+    )
 
     // 聚焦目标层（用爆炸后的盒子）
-    setTimeout(() => {
-      const box = new THREE.Box3()
-      floorGroups[index].forEach((m) => box.expandByObject(m))
-      focusBox(box, 1.5)
-    }, 100)
+    pendingTimeouts.push(
+      setTimeout(() => {
+        const box = new THREE.Box3()
+        floorGroups[index].forEach((m) => box.expandByObject(m))
+        focusBox(box, 1.5)
+      }, 100)
+    )
   }
 
   function focusRoom(name) {
     if (!building || !roomMeshes[name]) return
+    cancelTransitions()
     const targetMeshes = new Set(roomMeshes[name])
     building.traverse((m) => {
       if (!m.isMesh) return
