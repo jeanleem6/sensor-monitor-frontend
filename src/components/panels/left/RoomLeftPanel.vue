@@ -6,45 +6,58 @@ import MetricHistoryModal from '@/components/ui/MetricHistoryModal.vue'
 import { useRoomData } from '@/composables/useRoomData.js'
 
 const {
-  acTodayKwh, acPeakHour, acHistoryStat, acTrendOpt, acHistoryOpt,
-  lightTodayKwh, lightHistoryStat, lightTrendOpt, lightHistoryOpt,
-  irCurrentActivity, irOccupied, irHistoryStat, irTrendOpt, irHistoryOpt
+  acTodayKwh,
+  acPeakHour,
+  acHistoryStat,
+  acTrendOpt,
+  acHistoryOpt,
+  lightTodayKwh,
+  lightHistoryStat,
+  lightTrendOpt,
+  lightHistoryOpt,
+  irCurrentActivity,
+  irOccupied,
+  irHistoryStat,
+  irTrendOpt,
+  irHistoryOpt
 } = useRoomData()
 
-const acModal    = ref(false)
+const acModal = ref(false)
 const lightModal = ref(false)
-const irModal    = ref(false)
+const irModal = ref(false)
 
 const AC_STATS = [
-  { key: 'today', label: '今日',    cls: 'text-primary',     unit: 'kWh' },
-  { key: 'max',   label: '30日最高', cls: 'text-rose-400',    unit: 'kWh' },
-  { key: 'min',   label: '30日最低', cls: 'text-emerald-300', unit: 'kWh' },
-  { key: 'avg',   label: '30日均值', cls: 'text-cyan-50',     unit: 'kWh' }
+  { key: 'today', label: '今日', cls: 'text-primary', unit: 'kWh' },
+  { key: 'max', label: '30日最高', cls: 'text-rose-400', unit: 'kWh' },
+  { key: 'min', label: '30日最低', cls: 'text-emerald-300', unit: 'kWh' },
+  { key: 'avg', label: '30日均值', cls: 'text-cyan-50', unit: 'kWh' }
 ]
 const LIGHT_STATS = [
-  { key: 'today', label: '今日',    cls: 'text-amber-300',   unit: 'kWh' },
-  { key: 'max',   label: '30日最高', cls: 'text-rose-400',    unit: 'kWh' },
-  { key: 'min',   label: '30日最低', cls: 'text-emerald-300', unit: 'kWh' },
-  { key: 'avg',   label: '30日均值', cls: 'text-cyan-50',     unit: 'kWh' }
+  { key: 'today', label: '今日', cls: 'text-amber-300', unit: 'kWh' },
+  { key: 'max', label: '30日最高', cls: 'text-rose-400', unit: 'kWh' },
+  { key: 'min', label: '30日最低', cls: 'text-emerald-300', unit: 'kWh' },
+  { key: 'avg', label: '30日均值', cls: 'text-cyan-50', unit: 'kWh' }
 ]
 const IR_STATS = [
-  { key: 'today', label: '今日',    cls: 'text-primary',     unit: '占用小时' },
-  { key: 'max',   label: '30日最多', cls: 'text-rose-400',    unit: '占用小时' },
-  { key: 'min',   label: '30日最少', cls: 'text-emerald-300', unit: '占用小时' },
-  { key: 'avg',   label: '30日均值', cls: 'text-cyan-50',     unit: '占用小时' }
+  { key: 'today', label: '今日', cls: 'text-primary', unit: '占用小时' },
+  { key: 'max', label: '30日最多', cls: 'text-rose-400', unit: '占用小时' },
+  { key: 'min', label: '30日最少', cls: 'text-emerald-300', unit: '占用小时' },
+  { key: 'avg', label: '30日均值', cls: 'text-cyan-50', unit: '占用小时' }
 ]
 </script>
 
 <template>
   <!-- 空调能耗 -->
-  <BasePanel title="空调能耗">
+  <BasePanel title="空调能耗" class="flex-1 min-h-max">
     <div class="flex items-center justify-between mb-3">
       <div>
         <span class="text-3xl font-bold font-mono text-cyan-50">{{ acTodayKwh }}</span>
         <span class="ml-1 text-sm text-cyan-200/60">kWh 今日</span>
       </div>
       <div class="text-right text-sm">
-        <div class="text-cyan-200/60">峰值时段：<span class="font-mono text-primary">{{ acPeakHour.hour }}</span></div>
+        <div class="text-cyan-200/60">
+          峰值时段：<span class="font-mono text-primary">{{ acPeakHour.hour }}</span>
+        </div>
         <div class="font-mono text-xs text-cyan-100">{{ acPeakHour.value }} kWh/h</div>
       </div>
     </div>
@@ -52,7 +65,9 @@ const IR_STATS = [
       <Icon icon="mdi:clock-outline" class="text-primary text-base" />
       24小时逐时用电
     </div>
-    <EChart :option="acTrendOpt" height="93px" />
+    <div class="flex-1 min-h-23">
+      <EChart :option="acTrendOpt" height="100%" />
+    </div>
     <div
       class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
       @click="acModal = true"
@@ -64,14 +79,16 @@ const IR_STATS = [
   </BasePanel>
 
   <!-- 灯光插座能耗 -->
-  <BasePanel title="灯光插座能耗" class="mt-5">
+  <BasePanel title="灯光插座能耗" class="flex-1 min-h-max">
     <div class="flex items-center justify-between mb-3">
       <div>
         <span class="text-3xl font-bold font-mono text-cyan-50">{{ lightTodayKwh }}</span>
         <span class="ml-1 text-sm text-cyan-200/60">kWh 今日</span>
       </div>
       <div class="text-right text-sm">
-        <div class="text-cyan-200/60">月均最高：<span class="font-mono text-amber-300">{{ lightHistoryStat.max }}</span></div>
+        <div class="text-cyan-200/60">
+          月均最高：<span class="font-mono text-amber-300">{{ lightHistoryStat.max }}</span>
+        </div>
         <div class="text-xs text-cyan-200/50">kWh / 日</div>
       </div>
     </div>
@@ -79,7 +96,9 @@ const IR_STATS = [
       <Icon icon="mdi:lightbulb-on-outline" class="text-amber-300 text-base" />
       24小时逐时用电
     </div>
-    <EChart :option="lightTrendOpt" height="93px" />
+    <div class="flex-1 min-h-23">
+      <EChart :option="lightTrendOpt" height="100%" />
+    </div>
     <div
       class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
       @click="lightModal = true"
@@ -91,16 +110,28 @@ const IR_STATS = [
   </BasePanel>
 
   <!-- 红外线传感器 -->
-  <BasePanel title="红外线传感器" class="mt-5">
+  <BasePanel title="红外线传感器" class="flex-1 min-h-max">
     <div class="flex items-center justify-between gap-3 mb-3">
-      <div :class="['flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm font-semibold', irOccupied ? 'border-amber-300/50 bg-amber-300/10 text-amber-300' : 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300']">
+      <div
+        :class="[
+          'flex items-center gap-1.5 px-3 py-1.5 rounded border text-sm font-semibold',
+          irOccupied
+            ? 'border-amber-300/50 bg-amber-300/10 text-amber-300'
+            : 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300'
+        ]"
+      >
         <span :class="['size-2 rounded-full animate-pulse', irOccupied ? 'bg-amber-300' : 'bg-emerald-400']"></span>
         {{ irOccupied ? '有人在室' : '无人空置' }}
       </div>
       <div class="text-sm">
         <div class="text-cyan-200/60">
           当前活跃度：
-          <span class="font-mono text-lg font-bold" :class="irCurrentActivity > 60 ? 'text-rose-400' : irCurrentActivity > 30 ? 'text-amber-300' : 'text-primary'">
+          <span
+            class="font-mono text-lg font-bold"
+            :class="
+              irCurrentActivity > 60 ? 'text-rose-400' : irCurrentActivity > 30 ? 'text-amber-300' : 'text-primary'
+            "
+          >
             {{ irCurrentActivity }}%
           </span>
         </div>
@@ -110,7 +141,9 @@ const IR_STATS = [
       <Icon icon="mdi:motion-sensor" class="text-primary text-base" />
       24小时活跃度
     </div>
-    <EChart :option="irTrendOpt" height="94px" />
+    <div class="flex-1 min-h-23">
+      <EChart :option="irTrendOpt" height="100%" />
+    </div>
     <div
       class="mt-2 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
       @click="irModal = true"

@@ -75,9 +75,9 @@ body {
   @apply px-2 py-0.5 text-sm rounded border border-primary bg-primary hover:bg-primary/80 hover:border-primary/80 text-dark transition-colors cursor-pointer;
 }
 
-/* 两侧浮动 */
+/* 两侧浮动：上下双锚定，flex 列分配剩余高度；面板内部以 flex-1 min-h-max 兜底 */
 .level-side {
-  @apply absolute top-20 z-10 w-100 max-h-[calc(100vh-6rem)] overflow-y-auto;
+  @apply absolute top-20 bottom-5 z-10 w-100 overflow-y-auto flex flex-col gap-5;
 }
 
 /* 四角上的直角括号 */

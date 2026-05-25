@@ -71,7 +71,7 @@ const filteredDevices = computed(() =>
 
 <template>
   <!-- 摄像头监控 -->
-  <BasePanel title="摄像头监控">
+  <BasePanel title="摄像头监控" class="flex-5 min-h-max">
     <div class="flex items-center justify-between mt-2 px-2 py-2.25 rounded border border-primary/30 bg-primary/8">
       <div class="flex items-center gap-2">
         <Icon icon="mdi:cctv" class="text-2xl text-primary" />
@@ -89,7 +89,7 @@ const filteredDevices = computed(() =>
         </div>
       </div>
     </div>
-    <div class="grid grid-cols-2 gap-3 mt-3">
+    <div class="grid grid-cols-2 gap-3 mt-3 flex-1 min-h-0 content-around">
       <div
         v-for="c in cameras"
         :key="c.id"
@@ -172,7 +172,7 @@ const filteredDevices = computed(() =>
   </BasePanel>
 
   <!-- 手持及其它设备 -->
-  <BasePanel title="手持及其它设备" class="mt-5">
+  <BasePanel title="手持及其它设备" class="flex-4 min-h-max">
     <div
       class="flex items-center justify-between mt-2 px-2 py-2.25 rounded border border-primary/30 bg-primary/8 cursor-pointer hover:bg-primary/15 transition-colors"
       @click="deviceModal = true"
@@ -193,7 +193,7 @@ const filteredDevices = computed(() =>
         </div>
       </div>
     </div>
-    <div class="mt-3 space-y-1.75">
+    <div class="mt-3 flex-1 min-h-0 flex flex-col justify-around gap-1.75">
       <div
         v-for="g in deviceSummary.groups"
         :key="g.label"

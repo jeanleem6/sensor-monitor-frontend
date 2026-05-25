@@ -6,17 +6,24 @@ import EChart from '@/components/ui/EChart.vue'
 import { useFloorData } from '@/composables/useFloorData.js'
 
 const {
-  envSensors, energyDevices, energyTotal, energyOnlineSummary,
-  envSensorPieOption, energyDeviceBarOption, floorEnergyTrendOption
+  envSensors,
+  energyDevices,
+  energyTotal,
+  energyOnlineSummary,
+  envSensorPieOption,
+  energyDeviceBarOption,
+  floorEnergyTrendOption
 } = useFloorData()
 </script>
 
 <template>
-  <BasePanel title="环境传感器设备">
-    <EChart :option="envSensorPieOption" height="140px" />
+  <BasePanel title="环境传感器设备" class="flex-2 min-h-max">
+    <div class="flex-1 min-h-35">
+      <EChart :option="envSensorPieOption" height="100%" />
+    </div>
   </BasePanel>
 
-  <BasePanel title="能耗监测设备" class="mt-5">
+  <BasePanel title="能耗监测设备" class="flex-3 min-h-max">
     <div class="flex items-center justify-center gap-3 pb-2 mb-2 border-b border-primary/20">
       <div class="text-cyan-200/70">整体在线率</div>
       <GaugeRing
@@ -33,14 +40,17 @@ const {
           <span class="text-cyan-200/60"> / {{ energyOnlineSummary.total }} 台在线</span>
         </div>
         <div class="text-cyan-200/60">
-          离线 <span class="font-mono text-rose-400">{{ energyOnlineSummary.total - energyOnlineSummary.online }}</span> 台
+          离线
+          <span class="font-mono text-rose-400">{{ energyOnlineSummary.total - energyOnlineSummary.online }}</span> 台
         </div>
       </div>
     </div>
-    <EChart :option="energyDeviceBarOption" height="145px" />
+    <div class="flex-1 min-h-36">
+      <EChart :option="energyDeviceBarOption" height="100%" />
+    </div>
   </BasePanel>
 
-  <BasePanel title="能耗监测总量" class="mt-5">
+  <BasePanel title="能耗监测总量" class="flex-3 min-h-max">
     <div class="grid grid-cols-3 gap-2">
       <MetricCard
         v-for="e in energyTotal"
@@ -52,12 +62,14 @@ const {
         :status="e.status"
       />
     </div>
-    <div class="mt-3 pt-3 border-t border-primary/20">
+    <div class="mt-3 pt-3 border-t border-primary/20 flex-1 min-h-0 flex flex-col">
       <div class="flex items-center gap-1 text-sm text-cyan-200/60 mb-1">
         <Icon icon="mdi:chart-areaspline" class="text-primary text-base" />
         24小时分类能耗趋势
       </div>
-      <EChart :option="floorEnergyTrendOption" height="130px" />
+      <div class="flex-1 min-h-32">
+        <EChart :option="floorEnergyTrendOption" height="100%" />
+      </div>
     </div>
   </BasePanel>
 </template>
