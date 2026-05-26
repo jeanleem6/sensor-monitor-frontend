@@ -84,3 +84,20 @@ body {
 .corner-brackets {
   @apply pointer-events-none absolute w-2.5 h-2.5 border-primary;
 }
+
+/* AppNavMenu 下拉动画 */
+.nav-menu-pop-enter-active,
+.nav-menu-pop-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-menu-pop-enter-from,
+.nav-menu-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+}
+
+@keyframes nav-dot-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgb(19 234 235 / 0.8); }
+  50% { opacity: 0.5; box-shadow: 0 0 4px rgb(19 234 235 / 0.4); }
+}
