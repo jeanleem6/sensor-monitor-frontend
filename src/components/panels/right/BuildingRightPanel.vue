@@ -35,27 +35,45 @@ const cameraSummary = computed(() => {
 })
 
 // ---- 能耗·水耗·环境 ----
+// 阈值规则：number 表示「越大越糟」，>= 触发；[min, max] 表示「正常区间」，越界触发
 const energyMetrics = [
   { label: '今日用电量', value: 12480, unit: 'kWh' },
-  { label: '当前用电负荷', value: 685, unit: 'kW' },
-  { label: '本周峰值负荷', value: 920, unit: 'kW' },
-  { label: '单位面积能耗', value: 0.42, unit: 'kWh/m²' },
+  { label: '当前用电负荷', value: 845, unit: 'kW', warn: 800, danger: 1000 },
+  { label: '本周峰值负荷', value: 1180, unit: 'kW', warn: 1000, danger: 1200 },
+  { label: '单位面积能耗', value: 0.42, unit: 'kWh/m²', warn: 0.5, danger: 0.7 },
   { label: '碳排放量', value: 7488, unit: 'kg' },
   { label: '用能费用', value: 9856, unit: '元' }
 ]
 
 const waterMetrics = [
   { label: '今日用水量', value: 86.5, unit: 'm³' },
-  { label: '当前用水负荷', value: 4.2, unit: 'm³/h' },
+  { label: '当前用水负荷', value: 11.2, unit: 'm³/h', warn: 6, danger: 10 },
   { label: '用水费用', value: 432, unit: '元' }
 ]
 
 const envMetrics = [
-  { label: '楼层停留人数', value: 326, unit: '人' },
-  { label: '平均温度', value: 24.6, unit: '℃' },
-  { label: '平均湿度', value: 52, unit: '%' },
-  { label: 'CO₂浓度', value: 480, unit: 'ppm' }
+  { label: '楼层停留人数', value: 326, unit: '人', warn: 500, danger: 800 },
+  { label: '平均温度', value: 27.2, unit: '℃', warn: [20, 26], danger: [18, 28] },
+  { label: '平均湿度', value: 52, unit: '%', warn: [40, 65], danger: [30, 70] },
+  { label: 'CO₂浓度', value: 950, unit: 'ppm', warn: 800, danger: 1200 }
 ]
+
+const STATUS_CLASS = {
+  ok: { box: 'border-primary/20 bg-primary/4', value: 'text-cyan-50', dot: '' },
+  warn: { box: 'border-amber-400/40 bg-amber-400/8', value: 'text-amber-300', dot: 'bg-amber-400' },
+  danger: { box: 'border-rose-400/50 bg-rose-400/8', value: 'text-rose-300', dot: 'bg-rose-400 animate-pulse' }
+}
+
+const statusOf = (m) => {
+  const exceed = (t) => {
+    if (t == null) return false
+    if (Array.isArray(t)) return m.value < t[0] || m.value > t[1]
+    return m.value >= t
+  }
+  if (exceed(m.danger)) return STATUS_CLASS.danger
+  if (exceed(m.warn)) return STATUS_CLASS.warn
+  return STATUS_CLASS.ok
+}
 </script>
 
 <template>
@@ -162,56 +180,84 @@ const envMetrics = [
 
   <!-- 能耗·水耗·环境 -->
   <BasePanel title="能耗·水耗·环境" class="flex-1 min-h-max">
-    <!-- 能耗相关 -->
-    <div>
-      <div class="flex items-center gap-1.5 text-sm mb-1.5">
-        <Icon icon="mdi:lightning-bolt" class="text-amber-300 text-base" />
-        <span class="font-semibold text-cyan-100">能耗相关</span>
-      </div>
-      <div class="grid grid-cols-3 gap-1.5">
-        <div
-          v-for="m in energyMetrics"
-          :key="m.label"
-          class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5"
-        >
-          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
-          <div class="font-mono text-cyan-50 leading-tight">
-            <span class="text-base font-bold">{{ m.value }}</span>
-            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+    <div class="flex-1 min-h-0 flex flex-col justify-around gap-1.5">
+      <!-- 能耗相关 -->
+      <div>
+        <div class="flex items-center gap-1.5 text-sm mb-1.5">
+          <Icon icon="mdi:lightning-bolt" class="text-amber-300 text-base" />
+          <span class="font-semibold text-cyan-100">能耗相关</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <div
+            v-for="m in energyMetrics"
+            :key="m.label"
+            class="relative rounded border px-2 py-1.5 transition-colors"
+            :class="statusOf(m).box"
+          >
+            <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+            <div class="font-mono leading-tight">
+              <span class="text-base font-bold" :class="statusOf(m).value">{{ m.value }}</span>
+              <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+            </div>
+            <span
+              v-if="statusOf(m).dot"
+              class="absolute top-1 right-1 size-1.5 rounded-full"
+              :class="statusOf(m).dot"
+            ></span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 水耗相关 -->
-    <div class="mt-2">
-      <div class="flex items-center gap-1.5 text-sm mb-1.5">
-        <Icon icon="mdi:water" class="text-sky-300 text-base" />
-        <span class="font-semibold text-cyan-100">水耗相关</span>
-      </div>
-      <div class="grid grid-cols-3 gap-1.5">
-        <div v-for="m in waterMetrics" :key="m.label" class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5">
-          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
-          <div class="font-mono text-cyan-50 leading-tight">
-            <span class="text-base font-bold">{{ m.value }}</span>
-            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+      <!-- 水耗相关 -->
+      <div>
+        <div class="flex items-center gap-1.5 text-sm mb-1.5">
+          <Icon icon="mdi:water" class="text-sky-300 text-base" />
+          <span class="font-semibold text-cyan-100">水耗相关</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <div
+            v-for="m in waterMetrics"
+            :key="m.label"
+            class="relative rounded border px-2 py-1.5 transition-colors"
+            :class="statusOf(m).box"
+          >
+            <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+            <div class="font-mono leading-tight">
+              <span class="text-base font-bold" :class="statusOf(m).value">{{ m.value }}</span>
+              <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+            </div>
+            <span
+              v-if="statusOf(m).dot"
+              class="absolute top-1 right-1 size-1.5 rounded-full"
+              :class="statusOf(m).dot"
+            ></span>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 环境相关 -->
-    <div class="mt-2">
-      <div class="flex items-center gap-1.5 text-sm mb-1.5">
-        <Icon icon="mdi:leaf" class="text-emerald-300 text-base" />
-        <span class="font-semibold text-cyan-100">环境相关</span>
-      </div>
-      <div class="grid grid-cols-4 gap-1.5">
-        <div v-for="m in envMetrics" :key="m.label" class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5">
-          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
-          <div class="font-mono text-cyan-50 leading-tight">
-            <span class="text-base font-bold">{{ m.value }}</span>
-            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+      <!-- 环境相关 -->
+      <div>
+        <div class="flex items-center gap-1.5 text-sm mb-1.5">
+          <Icon icon="mdi:leaf" class="text-emerald-300 text-base" />
+          <span class="font-semibold text-cyan-100">环境相关</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <div
+            v-for="m in envMetrics"
+            :key="m.label"
+            class="relative rounded border px-2 py-1.5 transition-colors"
+            :class="statusOf(m).box"
+          >
+            <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+            <div class="font-mono leading-tight">
+              <span class="text-base font-bold" :class="statusOf(m).value">{{ m.value }}</span>
+              <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+            </div>
+            <span
+              v-if="statusOf(m).dot"
+              class="absolute top-1 right-1 size-1.5 rounded-full"
+              :class="statusOf(m).dot"
+            ></span>
           </div>
         </div>
       </div>
