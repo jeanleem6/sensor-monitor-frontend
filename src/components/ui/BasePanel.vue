@@ -10,10 +10,10 @@ defineProps({
 <template>
   <div class="relative overflow-visible flex flex-col text-body border border-primary/30 bg-primary/4 backdrop-blur-md">
     <!-- 四角上的直角括号 -->
-    <span class="corner-brackets -top-px -left-px border-t-2 border-l-2" aria-hidden="true"></span>
+    <!-- <span class="corner-brackets -top-px -left-px border-t-2 border-l-2" aria-hidden="true"></span>
     <span class="corner-brackets -top-px -right-px border-t-2 border-r-2" aria-hidden="true"></span>
     <span class="corner-brackets -bottom-px -left-px border-b-2 border-l-2" aria-hidden="true"></span>
-    <span class="corner-brackets -bottom-px -right-px border-b-2 border-r-2" aria-hidden="true"></span>
+    <span class="corner-brackets -bottom-px -right-px border-b-2 border-r-2" aria-hidden="true"></span> -->
 
     <!-- Title 光晕 -->
     <div

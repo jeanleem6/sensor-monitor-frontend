@@ -19,10 +19,10 @@ function goBack() {
       class="relative px-12 py-10 rounded-lg border border-primary/30 bg-primary/4 backdrop-blur shadow-(--shadow-glow-md)"
     >
       <!-- 四角直角括号 -->
-      <span class="corner-brackets top-2 left-2 border-l-2 border-t-2"></span>
+      <!-- <span class="corner-brackets top-2 left-2 border-l-2 border-t-2"></span>
       <span class="corner-brackets top-2 right-2 border-r-2 border-t-2"></span>
       <span class="corner-brackets bottom-2 left-2 border-l-2 border-b-2"></span>
-      <span class="corner-brackets bottom-2 right-2 border-r-2 border-b-2"></span>
+      <span class="corner-brackets bottom-2 right-2 border-r-2 border-b-2"></span> -->
 
       <div class="flex flex-col items-center">
         <div

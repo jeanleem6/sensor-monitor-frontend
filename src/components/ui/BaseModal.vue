@@ -71,10 +71,10 @@ watch(
             class="relative flex flex-col max-h-[85vh] border border-primary/40 bg-dark/95 backdrop-blur-md shadow-(--shadow-glow-md)"
             :style="{ width }"
           >
-            <span class="corner-brackets -top-px -left-px border-t-2 border-l-2"></span>
+            <!-- <span class="corner-brackets -top-px -left-px border-t-2 border-l-2"></span>
             <span class="corner-brackets -top-px -right-px border-t-2 border-r-2"></span>
             <span class="corner-brackets -bottom-px -left-px border-b-2 border-l-2"></span>
-            <span class="corner-brackets -bottom-px -right-px border-b-2 border-r-2"></span>
+            <span class="corner-brackets -bottom-px -right-px border-b-2 border-r-2"></span> -->
 
             <div class="flex items-center justify-between px-5 py-3 border-b border-primary/25 select-none">
               <div class="flex items-center gap-2 text-base font-semibold text-primary tracking-wider">
