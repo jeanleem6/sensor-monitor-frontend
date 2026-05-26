@@ -34,45 +34,34 @@ const cameraSummary = computed(() => {
   }
 })
 
-// ---- 手持及其它设备 ----
-const deviceSummary = {
-  total: 138,
-  online: 124,
-  offline: 14,
-  groups: [
-    { icon: 'mdi:cellphone-text', label: '手持终端', total: 42, online: 39 },
-    { icon: 'mdi:radio-handheld', label: '对讲设备', total: 28, online: 26 },
-    { icon: 'mdi:tablet-android', label: '巡检平板', total: 18, online: 15 },
-    { icon: 'carbon:iot-platform', label: '物联网关', total: 24, online: 22 },
-    { icon: 'mdi:wifi-marker', label: '定位信标', total: 26, online: 22 }
-  ]
-}
-
-const allDevices = [
-  { sn: 'HH-001', type: '手持终端', user: '李工', loc: '3F-机房', online: true, battery: 86 },
-  { sn: 'HH-002', type: '手持终端', user: '王工', loc: '5F-走廊', online: true, battery: 62 },
-  { sn: 'HH-003', type: '手持终端', user: '张工', loc: '—', online: false, battery: 0 },
-  { sn: 'RD-014', type: '对讲设备', user: '安保-甲', loc: '主入口', online: true, battery: 78 },
-  { sn: 'RD-021', type: '对讲设备', user: '安保-乙', loc: '东侧通道', online: true, battery: 45 },
-  { sn: 'TB-008', type: '巡检平板', user: '巡检组', loc: '2F-办公', online: true, battery: 91 },
-  { sn: 'TB-009', type: '巡检平板', user: '—', loc: '充电桩', online: false, battery: 12 },
-  { sn: 'GW-A2', type: '物联网关', user: '系统', loc: '设备机房', online: true, battery: 100 },
-  { sn: 'BC-12', type: '定位信标', user: '系统', loc: '4F-走廊', online: true, battery: 67 },
-  { sn: 'BC-15', type: '定位信标', user: '系统', loc: '6F-入口', online: false, battery: 0 }
+// ---- 能耗·水耗·环境 ----
+const energyMetrics = [
+  { label: '今日用电量', value: 12480, unit: 'kWh' },
+  { label: '当前用电负荷', value: 685, unit: 'kW' },
+  { label: '本周峰值负荷', value: 920, unit: 'kW' },
+  { label: '单位面积能耗', value: 0.42, unit: 'kWh/m²' },
+  { label: '碳排放量', value: 7488, unit: 'kg' },
+  { label: '用能费用', value: 9856, unit: '元' }
 ]
 
-const deviceModal = ref(false)
-const deviceFilter = ref('全部')
-const deviceTypes = computed(() => ['全部', ...new Set(allDevices.map((d) => d.type))])
-const filteredDevices = computed(() =>
-  deviceFilter.value === '全部' ? allDevices : allDevices.filter((d) => d.type === deviceFilter.value)
-)
+const waterMetrics = [
+  { label: '今日用水量', value: 86.5, unit: 'm³' },
+  { label: '当前用水负荷', value: 4.2, unit: 'm³/h' },
+  { label: '用水费用', value: 432, unit: '元' }
+]
+
+const envMetrics = [
+  { label: '楼层停留人数', value: 326, unit: '人' },
+  { label: '平均温度', value: 24.6, unit: '℃' },
+  { label: '平均湿度', value: 52, unit: '%' },
+  { label: 'CO₂浓度', value: 480, unit: 'ppm' }
+]
 </script>
 
 <template>
   <!-- 摄像头监控 -->
-  <BasePanel title="摄像头监控" class="flex-5 min-h-max">
-    <div class="flex items-center justify-between mt-2 px-2 py-2.25 rounded border border-primary/30 bg-primary/8">
+  <BasePanel title="摄像头监控" class="flex-1 min-h-max">
+    <div class="flex items-center justify-between p-2 rounded border border-primary/30 bg-primary/8">
       <div class="flex items-center gap-2">
         <Icon icon="mdi:cctv" class="text-2xl text-primary" />
         <div>
@@ -89,7 +78,7 @@ const filteredDevices = computed(() =>
         </div>
       </div>
     </div>
-    <div class="grid grid-cols-2 gap-3 mt-3 flex-1 min-h-0 content-around">
+    <div class="grid grid-cols-2 gap-2 mt-2 flex-1 min-h-0 content-around">
       <div
         v-for="c in cameras"
         :key="c.id"
@@ -171,45 +160,61 @@ const filteredDevices = computed(() =>
     </div> -->
   </BasePanel>
 
-  <!-- 手持及其它设备 -->
-  <BasePanel title="手持及其它设备" class="flex-4 min-h-max">
-    <div
-      class="flex items-center justify-between mt-2 px-2 py-2.25 rounded border border-primary/30 bg-primary/8 cursor-pointer hover:bg-primary/15 transition-colors"
-      @click="deviceModal = true"
-    >
-      <div class="flex items-center gap-2">
-        <Icon icon="mdi:devices" class="text-2xl text-primary" />
-        <div>
-          <div class="text-sm text-cyan-200/70">设备总数</div>
-          <div class="text-2xl font-bold font-mono text-cyan-50 leading-none">{{ deviceSummary.total }}</div>
-        </div>
+  <!-- 能耗·水耗·环境 -->
+  <BasePanel title="能耗·水耗·环境" class="flex-1 min-h-max">
+    <!-- 能耗相关 -->
+    <div>
+      <div class="flex items-center gap-1.5 text-sm mb-1.5">
+        <Icon icon="mdi:lightning-bolt" class="text-amber-300 text-base" />
+        <span class="font-semibold text-cyan-100">能耗相关</span>
       </div>
-      <div class="text-right text-sm">
-        <div class="flex items-center justify-end gap-1 text-emerald-300">
-          <span class="size-1.5 rounded-full bg-emerald-300"></span>在线 {{ deviceSummary.online }}
-        </div>
-        <div class="flex items-center justify-end gap-1 text-rose-400 mt-0.5">
-          <span class="size-1.5 rounded-full bg-rose-400"></span>离线 {{ deviceSummary.offline }}
+      <div class="grid grid-cols-3 gap-1.5">
+        <div
+          v-for="m in energyMetrics"
+          :key="m.label"
+          class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5"
+        >
+          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+          <div class="font-mono text-cyan-50 leading-tight">
+            <span class="text-base font-bold">{{ m.value }}</span>
+            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+          </div>
         </div>
       </div>
     </div>
-    <div class="mt-3 flex-1 min-h-0 flex flex-col justify-around gap-1.75">
-      <div
-        v-for="g in deviceSummary.groups"
-        :key="g.label"
-        class="flex items-center gap-2 px-2 py-1 text-sm rounded hover:bg-primary/8 transition-colors"
-      >
-        <Icon :icon="g.icon" class="text-base text-cyan-300" />
-        <span class="flex-1 text-cyan-100">{{ g.label }}</span>
-        <span class="font-mono text-cyan-200/70">{{ g.online }} / {{ g.total }}</span>
+
+    <!-- 水耗相关 -->
+    <div class="mt-2">
+      <div class="flex items-center gap-1.5 text-sm mb-1.5">
+        <Icon icon="mdi:water" class="text-sky-300 text-base" />
+        <span class="font-semibold text-cyan-100">水耗相关</span>
+      </div>
+      <div class="grid grid-cols-3 gap-1.5">
+        <div v-for="m in waterMetrics" :key="m.label" class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5">
+          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+          <div class="font-mono text-cyan-50 leading-tight">
+            <span class="text-base font-bold">{{ m.value }}</span>
+            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div
-      class="mt-3 pt-2 border-t border-primary/20 flex items-center justify-center gap-1 text-sm text-primary/80 hover:text-primary cursor-pointer"
-      @click="deviceModal = true"
-    >
-      <span>查看所有设备</span>
-      <Icon icon="lucide:arrow-right" class="text-sm" />
+
+    <!-- 环境相关 -->
+    <div class="mt-2">
+      <div class="flex items-center gap-1.5 text-sm mb-1.5">
+        <Icon icon="mdi:leaf" class="text-emerald-300 text-base" />
+        <span class="font-semibold text-cyan-100">环境相关</span>
+      </div>
+      <div class="grid grid-cols-4 gap-1.5">
+        <div v-for="m in envMetrics" :key="m.label" class="rounded border border-primary/20 bg-primary/4 px-2 py-1.5">
+          <div class="text-xs text-cyan-200/60 truncate">{{ m.label }}</div>
+          <div class="font-mono text-cyan-50 leading-tight">
+            <span class="text-base font-bold">{{ m.value }}</span>
+            <span class="text-xs text-cyan-200/60 ml-0.5">{{ m.unit }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </BasePanel>
 
@@ -283,72 +288,6 @@ const filteredDevices = computed(() =>
       <button class="btn" @click="cameraModal = false">关闭</button>
       <button class="btn-primary"><Icon icon="lucide:download" class="inline-block mr-1" />下载录像</button>
     </template>
-  </BaseModal>
-
-  <!-- 设备清单 Modal -->
-  <BaseModal v-model="deviceModal" title="设备清单" icon="mdi:devices" width="820px">
-    <div class="flex flex-wrap items-center gap-1.5 mb-3">
-      <button
-        v-for="t in deviceTypes"
-        :key="t"
-        :class="deviceFilter === t ? 'btn-primary' : 'btn'"
-        @click="deviceFilter = t"
-      >
-        {{ t }}
-      </button>
-    </div>
-    <div class="rounded border border-primary/20 overflow-hidden">
-      <table class="w-full text-sm">
-        <thead class="bg-primary/8 text-cyan-200/80">
-          <tr>
-            <th class="text-left px-3 py-2 font-semibold">SN</th>
-            <th class="text-left px-3 py-2 font-semibold">类型</th>
-            <th class="text-left px-3 py-2 font-semibold">使用人</th>
-            <th class="text-left px-3 py-2 font-semibold">位置</th>
-            <th class="text-left px-3 py-2 font-semibold">状态</th>
-            <th class="text-left px-3 py-2 font-semibold">电量</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="d in filteredDevices"
-            :key="d.sn"
-            class="border-t border-primary/10 hover:bg-primary/8 transition-colors"
-          >
-            <td class="px-3 py-2 font-mono text-cyan-100">{{ d.sn }}</td>
-            <td class="px-3 py-2 text-cyan-100">{{ d.type }}</td>
-            <td class="px-3 py-2 text-cyan-200/80">{{ d.user }}</td>
-            <td class="px-3 py-2 text-cyan-200/80">{{ d.loc }}</td>
-            <td class="px-3 py-2">
-              <span
-                :class="[
-                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-sm',
-                  d.online ? 'bg-emerald-400/15 text-emerald-300' : 'bg-rose-400/15 text-rose-300'
-                ]"
-              >
-                <Icon :icon="d.online ? 'lucide:wifi' : 'lucide:wifi-off'" class="text-sm" />
-                {{ d.online ? '在线' : '离线' }}
-              </span>
-            </td>
-            <td class="px-3 py-2">
-              <div class="flex items-center gap-1.5">
-                <div class="relative w-14 h-2 rounded bg-cyan-400/15 overflow-hidden">
-                  <div
-                    class="absolute inset-y-0 left-0 transition-all"
-                    :class="d.battery > 30 ? 'bg-emerald-400' : 'bg-rose-400'"
-                    :style="{ width: d.battery + '%' }"
-                  ></div>
-                </div>
-                <span class="font-mono text-cyan-200/70 text-sm">{{ d.battery }}%</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="mt-2 text-sm text-cyan-200/60">
-      共 {{ filteredDevices.length }} 台 · 在线 {{ filteredDevices.filter((d) => d.online).length }} 台
-    </div>
   </BaseModal>
 </template>
 
