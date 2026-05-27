@@ -1,7 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useViewerStore } from '@/stores/viewer'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
+import CollapsedSummary from '@/components/panels/CollapsedSummary.vue'
+
+const { sidesCollapsed } = storeToRefs(useViewerStore())
 
 // ---- 摄像头 ----
 const cameras = [
@@ -59,9 +64,9 @@ const envMetrics = [
 ]
 
 const STATUS_CLASS = {
-  ok: { box: 'border-primary/20 bg-primary/4', value: 'text-cyan-50', dot: '' },
-  warn: { box: 'border-amber-400/40 bg-amber-400/8', value: 'text-amber-300', dot: 'bg-amber-400' },
-  danger: { box: 'border-rose-400/50 bg-rose-400/8', value: 'text-rose-300', dot: 'bg-rose-400 animate-pulse' }
+  ok: { box: 'border-primary/20 bg-primary/4 hover:border-primary/60 hover:bg-primary/12', value: 'text-cyan-50', dot: '' },
+  warn: { box: 'border-amber-400/40 bg-amber-400/8 hover:border-amber-400/70 hover:bg-amber-400/15', value: 'text-amber-300', dot: 'bg-amber-400' },
+  danger: { box: 'border-rose-400/50 bg-rose-400/8 hover:border-rose-400/80 hover:bg-rose-400/16', value: 'text-rose-300', dot: 'bg-rose-400 animate-pulse' }
 }
 
 const statusOf = (m) => {
@@ -74,9 +79,67 @@ const statusOf = (m) => {
   if (exceed(m.warn)) return STATUS_CLASS.warn
   return STATUS_CLASS.ok
 }
+
+// ---- 折叠态摘要 ----
+const statusKey = (m) => {
+  const exceed = (t) => (t == null ? false : Array.isArray(t) ? m.value < t[0] || m.value > t[1] : m.value >= t)
+  if (exceed(m.danger)) return 'danger'
+  if (exceed(m.warn)) return 'warning'
+  return 'normal'
+}
+const toMetric = (m) => ({ label: m.label, value: m.value, unit: m.unit, status: statusKey(m) })
+
+const energyCollapsed = computed(() => energyMetrics.map(toMetric))
+const waterCollapsed = computed(() => waterMetrics.map(toMetric))
+const envCollapsed = computed(() => envMetrics.map(toMetric))
+const cameraMetrics = computed(() =>
+  cameras.map((c) => ({
+    icon: c.icon,
+    label: c.name,
+    valueIcon: c.online ? 'mdi:cctv' : 'mdi:cctv-off',
+    value: c.online ? '在线' : '离线',
+    status: c.online ? 'normal' : 'danger',
+    room: c.id // 标记可点击，点击打开实时视频
+  }))
+)
+const onCameraSelect = (m) => {
+  const c = cameras.find((x) => x.id === m.room)
+  if (c) openCamera(c)
+}
 </script>
 
 <template>
+  <!-- 折叠态：纯数据摘要 -->
+  <template v-if="sidesCollapsed">
+    <CollapsedSummary
+      title="摄像头"
+      icon="mdi:cctv"
+      :metrics="cameraMetrics"
+      marquee
+      marquee-height="9rem"
+      @select="onCameraSelect"
+    >
+      <template #header>
+        <div class="flex items-center justify-between text-sm pb-1.5 mb-0.5 border-b border-primary/15">
+          <span class="flex items-center gap-1 text-cyan-50">
+            <span class="font-mono font-bold text-base">{{ cameraSummary.total }}</span>总数
+          </span>
+          <span class="flex items-center gap-1 text-emerald-300">
+            <span class="size-1.5 rounded-full bg-emerald-300"></span>{{ cameraSummary.online }}
+          </span>
+          <span class="flex items-center gap-1 text-neutral-300">
+            <span class="size-1.5 rounded-full bg-neutral-400"></span>{{ cameraSummary.offline }}
+          </span>
+        </div>
+      </template>
+    </CollapsedSummary>
+    <CollapsedSummary title="用电" icon="mdi:lightning-bolt" :metrics="energyCollapsed" />
+    <CollapsedSummary title="用水" icon="mdi:water" :metrics="waterCollapsed" />
+    <CollapsedSummary title="环境" icon="mdi:leaf" :metrics="envCollapsed" />
+  </template>
+
+  <!-- 展开态：完整内容 -->
+  <template v-else>
   <!-- 摄像头监控 -->
   <BasePanel title="摄像头监控" class="flex-1 min-h-max">
     <div class="flex items-center justify-between p-2 rounded border border-primary/30 bg-primary/8">
@@ -263,6 +326,7 @@ const statusOf = (m) => {
       </div>
     </div>
   </BasePanel>
+  </template>
 
   <!-- 摄像头视频 Modal -->
   <BaseModal

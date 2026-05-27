@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 import { useViewerStore } from '@/stores/viewer'
 
 const store = useViewerStore()
-const { breadcrumb, level } = storeToRefs(store)
+const { breadcrumb, level, sidesCollapsed } = storeToRefs(store)
 </script>
 
 <template>
@@ -32,5 +32,15 @@ const { breadcrumb, level } = storeToRefs(store)
         <span v-if="i < breadcrumb.length - 1" class="text-cyan-100/30">/</span>
       </template>
     </div>
+    <button
+      class="flex items-center gap-1 px-3 py-1.5 text-sm rounded border border-primary/40 bg-primary/4 backdrop-blur text-cyan-100 hover:bg-primary/15 hover:text-primary transition-colors shadow-(--shadow-glow-sm)"
+      @click="store.toggleSides"
+      :title="sidesCollapsed ? '展开两侧面板 (\\)' : '折叠两侧面板 (\\)'"
+      :aria-label="sidesCollapsed ? '展开两侧面板' : '折叠两侧面板'"
+      :aria-pressed="sidesCollapsed"
+    >
+      <Icon :icon="sidesCollapsed ? 'lucide:panel-left-open' : 'lucide:panel-left-close'" class="text-base" />
+      {{ sidesCollapsed ? '展开' : '折叠' }}
+    </button>
   </div>
 </template>

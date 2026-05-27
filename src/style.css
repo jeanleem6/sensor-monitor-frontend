@@ -76,8 +76,19 @@ body {
 }
 
 /* 两侧浮动：上下双锚定，flex 列分配剩余高度；面板内部以 flex-1 min-h-max 兜底 */
+/* px/py 给卡片 hover 时的外围光晕留出余地：overflow-y-auto 会把 overflow-x 也收成 auto，
+   不留内边距光晕会被贴边裁掉 */
 .level-side {
-  @apply absolute top-20 bottom-5 z-10 w-100 overflow-y-auto flex flex-col gap-5;
+  @apply absolute top-20 bottom-4 z-10 overflow-y-auto flex flex-col px-1.5 py-1 transition-[width] duration-300 ease-out;
+}
+
+/* 两侧面板卡片 hover：边框高亮 + 外围 shine 光晕 */
+.panel-hoverable {
+  @apply transition-[border-color,box-shadow,background-color] duration-300 ease-out;
+}
+.panel-hoverable:hover {
+  @apply border-primary/70 bg-primary/7;
+  box-shadow: 0 0 6px 1px rgb(19 234 235 / 0.3);
 }
 
 /* 四角上的直角括号 */
@@ -88,7 +99,9 @@ body {
 /* AppNavMenu 下拉动画 */
 .nav-menu-pop-enter-active,
 .nav-menu-pop-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .nav-menu-pop-enter-from,
@@ -98,6 +111,23 @@ body {
 }
 
 @keyframes nav-dot-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgb(19 234 235 / 0.8); }
-  50% { opacity: 0.5; box-shadow: 0 0 4px rgb(19 234 235 / 0.4); }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px rgb(19 234 235 / 0.8);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 4px rgb(19 234 235 / 0.4);
+  }
+}
+
+/* CollapsedSummary 折叠态纵向跑马灯 */
+@keyframes marquee-vertical {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
 }

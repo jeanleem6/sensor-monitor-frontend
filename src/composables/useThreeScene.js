@@ -565,6 +565,7 @@ export function createThreeScene(container, store) {
     if (e.key === 't') store.toggleTransparent()
     if (e.key === 'r') store.resetView()
     if (e.key === 'f') store.fitView()
+    if (e.key === '\\') store.toggleSides()
   }
 
   function onResize() {

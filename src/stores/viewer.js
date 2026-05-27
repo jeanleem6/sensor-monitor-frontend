@@ -22,6 +22,12 @@ export const useViewerStore = defineStore('viewer', () => {
   // ---- 视觉模式 ----
   const transparentMode = ref(true)
 
+  // ---- 两侧面板折叠（三层级共用一个全局开关，会话内记忆） ----
+  const sidesCollapsed = ref(false)
+  const toggleSides = () => {
+    sidesCollapsed.value = !sidesCollapsed.value
+  }
+
   // ---- 命中信息 ----
   const infoPanel = ref({ visible: false, meshName: '', materialName: '' })
 
@@ -134,6 +140,7 @@ export const useViewerStore = defineStore('viewer', () => {
     selectedFloor,
     selectedRoom,
     transparentMode,
+    sidesCollapsed,
     infoPanel,
     floorCount,
     roomCount,
@@ -148,6 +155,7 @@ export const useViewerStore = defineStore('viewer', () => {
     goBack,
     goTo,
     toggleTransparent,
+    toggleSides,
     resetView,
     fitView,
     showInfo,

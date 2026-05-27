@@ -1,14 +1,40 @@
 <script setup>
+import { computed } from 'vue'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import EChart from '@/components/ui/EChart.vue'
+import CollapsedSummary from '@/components/panels/CollapsedSummary.vue'
 import { useViewerStore } from '@/stores/viewer'
 import { storeToRefs } from 'pinia'
 import { useFloorData } from '@/composables/useFloorData.js'
 
 const store = useViewerStore()
-const { selectedRoom } = storeToRefs(store)
+const { selectedRoom, sidesCollapsed } = storeToRefs(store)
 
 const { roomNames, tempHumidityRows, co2Rows, irRows, scatterOption, heatmapOption } = useFloorData()
+
+// ---- 折叠态摘要 ----
+const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0)
+const tempHumMetrics = computed(() => {
+  const t = avg(tempHumidityRows.value.map((r) => parseFloat(r.temp)))
+  const h = avg(tempHumidityRows.value.map((r) => parseFloat(r.humidity)))
+  return [
+    { icon: 'mdi:thermometer', label: '平均温度', value: t.toFixed(1), unit: '°C', status: t >= 28 ? 'danger' : t >= 26 ? 'warning' : 'normal' },
+    { icon: 'mdi:water-percent', label: '平均湿度', value: h.toFixed(0), unit: '%', status: h >= 70 || h < 35 ? 'warning' : 'normal' }
+  ]
+})
+const co2Metrics = computed(() =>
+  co2Rows.value.map((r) => ({ icon: 'mdi:molecule-co2', label: r.name, value: r.value, unit: 'ppm', status: r.status, room: r.name }))
+)
+const irMetrics = computed(() =>
+  irRows.value.map((r) => ({
+    label: r.name,
+    valueIcon: r.occupied ? 'mdi:account' : 'mdi:account-off-outline',
+    value: r.occupied ? '有人' : '空闲',
+    status: r.occupied ? 'warning' : 'normal',
+    room: r.name
+  }))
+)
+const onRoomSelect = (m) => store.enterRoom(m.room)
 
 const statusText = { normal: 'text-cyan-50', warning: 'text-amber-300', danger: 'text-rose-400' }
 
@@ -18,6 +44,33 @@ const itemActive = 'bg-primary/25 hover:bg-primary/25'
 </script>
 
 <template>
+  <!-- 折叠态：纯数据摘要 -->
+  <template v-if="sidesCollapsed">
+    <CollapsedSummary title="温湿度" icon="mdi:thermometer-water" :metrics="tempHumMetrics">
+      <div class="mt-0.5 pt-1.5 border-t border-primary/15 text-xs text-cyan-200/50 leading-tight">
+        舒适区 22-26°C · 40-60%
+      </div>
+    </CollapsedSummary>
+    <CollapsedSummary
+      title="二氧化碳"
+      icon="mdi:molecule-co2"
+      :metrics="co2Metrics"
+      marquee
+      marquee-height="11rem"
+      @select="onRoomSelect"
+    />
+    <CollapsedSummary
+      title="红外线"
+      icon="mdi:motion-sensor"
+      :metrics="irMetrics"
+      marquee
+      marquee-height="11rem"
+      @select="onRoomSelect"
+    />
+  </template>
+
+  <!-- 展开态：完整内容 -->
+  <template v-else>
   <!-- 温湿度散点 -->
   <BasePanel title="温湿度监测" class="flex-4 min-h-max">
     <div v-if="!tempHumidityRows.length" class="px-2 py-1 text-sm text-cyan-200/50">本层未侦测到房间</div>
@@ -109,4 +162,5 @@ const itemActive = 'bg-primary/25 hover:bg-primary/25'
       </div>
     </template>
   </BasePanel>
+  </template>
 </template>

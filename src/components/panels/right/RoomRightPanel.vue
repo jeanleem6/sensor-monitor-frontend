@@ -1,10 +1,15 @@
 <script setup>
 import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useViewerStore } from '@/stores/viewer'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import GaugeRing from '@/components/ui/GaugeRing.vue'
 import EChart from '@/components/ui/EChart.vue'
 import MetricHistoryModal from '@/components/ui/MetricHistoryModal.vue'
+import CollapsedSummary from '@/components/panels/CollapsedSummary.vue'
 import { useRoomData } from '@/composables/useRoomData.js'
+
+const { sidesCollapsed } = storeToRefs(useViewerStore())
 
 const {
   tempCurrent,
@@ -49,6 +54,27 @@ const CO2_STATS = [
 </script>
 
 <template>
+  <!-- 折叠态：圆环仪表 -->
+  <template v-if="sidesCollapsed">
+    <CollapsedSummary title="温度" icon="mdi:thermometer">
+      <div class="flex justify-center py-1">
+        <GaugeRing :value="+tempCurrent.toFixed(1)" :max="35" unit="°C" :status="tempStatus" :size="64" />
+      </div>
+    </CollapsedSummary>
+    <CollapsedSummary title="湿度" icon="mdi:water-percent">
+      <div class="flex justify-center py-1">
+        <GaugeRing :value="humCurrent" :max="100" unit="%" :status="humStatus" :size="64" inline />
+      </div>
+    </CollapsedSummary>
+    <CollapsedSummary title="二氧化碳" icon="mdi:molecule-co2">
+      <div class="flex justify-center py-1">
+        <GaugeRing :value="co2Current" :max="2000" unit="ppm" :status="co2Status" :size="64" />
+      </div>
+    </CollapsedSummary>
+  </template>
+
+  <!-- 展开态：完整内容 -->
+  <template v-else>
   <!-- 温度监测 -->
   <BasePanel title="温度监测" class="flex-1 min-h-max">
     <div class="flex items-center gap-3 mb-2">
@@ -180,6 +206,7 @@ const CO2_STATS = [
       ><Icon icon="lucide:chevron-right" class="text-sm" />
     </div>
   </BasePanel>
+  </template>
 
   <!-- 历史 Modals -->
   <MetricHistoryModal

@@ -1,9 +1,14 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useViewerStore } from '@/stores/viewer'
 import BasePanel from '@/components/ui/BasePanel.vue'
 import EChart from '@/components/ui/EChart.vue'
 import MetricHistoryModal from '@/components/ui/MetricHistoryModal.vue'
+import CollapsedSummary from '@/components/panels/CollapsedSummary.vue'
 import { useRoomData } from '@/composables/useRoomData.js'
+
+const { sidesCollapsed } = storeToRefs(useViewerStore())
 
 const {
   acTodayKwh,
@@ -44,9 +49,39 @@ const IR_STATS = [
   { key: 'min', label: '30日最少', cls: 'text-emerald-300', unit: '占用小时' },
   { key: 'avg', label: '30日均值', cls: 'text-cyan-50', unit: '占用小时' }
 ]
+
+// ---- 折叠态摘要 ----
+const acMetrics = computed(() => [
+  { icon: 'mdi:flash', label: '今日', value: acTodayKwh.value, unit: 'kWh' },
+  { icon: 'mdi:clock-outline', label: '峰值时段', value: acPeakHour.value.hour },
+  { icon: 'mdi:chart-bell-curve', label: '峰值功率', value: acPeakHour.value.value, unit: 'kWh/h' }
+])
+const lightMetrics = computed(() => [
+  { icon: 'mdi:flash', label: '今日', value: lightTodayKwh.value, unit: 'kWh' },
+  { icon: 'mdi:trending-up', label: '月均最高', value: lightHistoryStat.value.max, unit: 'kWh/日' }
+])
+const irMetrics = computed(() => [
+  {
+    icon: 'mdi:motion-sensor',
+    label: '当前状态',
+    valueIcon: irOccupied.value ? 'mdi:account' : 'mdi:account-off-outline',
+    value: irOccupied.value ? '有人' : '空闲',
+    status: irOccupied.value ? 'warning' : 'normal'
+  },
+  { icon: 'mdi:pulse', label: '活跃度', value: irCurrentActivity.value, unit: '%' }
+])
 </script>
 
 <template>
+  <!-- 折叠态：纯数据摘要 -->
+  <template v-if="sidesCollapsed">
+    <CollapsedSummary title="空调能耗" icon="mdi:air-conditioner" :metrics="acMetrics" />
+    <CollapsedSummary title="灯光插座" icon="mdi:lightbulb-on-outline" :metrics="lightMetrics" />
+    <CollapsedSummary title="红外线" icon="mdi:motion-sensor" :metrics="irMetrics" />
+  </template>
+
+  <!-- 展开态：完整内容 -->
+  <template v-else>
   <!-- 空调能耗 -->
   <BasePanel title="空调能耗" class="flex-1 min-h-max">
     <div class="flex items-center justify-between mb-3">
@@ -153,6 +188,7 @@ const IR_STATS = [
       <Icon icon="lucide:chevron-right" class="text-sm" />
     </div>
   </BasePanel>
+  </template>
 
   <!-- 历史 Modals -->
   <MetricHistoryModal
