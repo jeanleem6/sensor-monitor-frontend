@@ -37,6 +37,16 @@ export function createThreeScene(container, store) {
   let isDragging = false
   const mouseDownPos = { x: 0, y: 0 }
 
+  // 两侧面板折叠后空出大片可视区域：把镜头按比例拉近(×0.72)放大模型填满。
+  // 但楼栋视角本身用 offset 0.7（刻意溢出、靠面板遮住两侧），直接 ×0.72→0.504 会过大溢出，
+  // 不限制又会比展开态(0.7)还远→反而更小。故设下限 0.6：比展开态略大、填满可视区又不溢出，
+  // 楼层/房间(×0.72 后为 1.08/1.15)远在下限之上，不受影响。
+  const SIDES_COLLAPSED_ZOOM = 0.72
+  const MIN_COLLAPSED_SCALE = 0.6
+  // 把某个 fit 的 padding/offset 换算成考虑折叠态后的有效缩放
+  const layoutScale = (scale) =>
+    store.sidesCollapsed ? Math.max(scale * SIDES_COLLAPSED_ZOOM, MIN_COLLAPSED_SCALE) : scale
+
   // 视图切换中的延后任务（setTimeout / gsap tween）：用户快速连续切换层级时，
   // 必须取消上一段还未完成的隐藏/淡出/相机动画，否则会覆盖新视图的状态
   let pendingTimeouts = []
@@ -143,7 +153,7 @@ export function createThreeScene(container, store) {
 
     const fov = (camera.fov * Math.PI) / 180
     let distance = Math.abs(maxDim / 2 / Math.tan(fov / 2))
-    distance *= offset
+    distance *= layoutScale(offset)
 
     camera.position.set(center.x + distance, center.y + distance * 0.6, center.z + distance)
     camera.near = maxDim / 100
@@ -164,7 +174,7 @@ export function createThreeScene(container, store) {
     const maxDim = Math.max(size.x, size.y, size.z)
     const fov = (camera.fov * Math.PI) / 180
     let distance = Math.abs(maxDim / 2 / Math.tan(fov / 2))
-    distance *= paddingScale
+    distance *= layoutScale(paddingScale)
     const targetPos = center.clone().add(new THREE.Vector3(distance, distance * 0.6, distance))
     gsap.to(camera.position, { x: targetPos.x, y: targetPos.y, z: targetPos.z, duration: 1.0 })
     gsap.to(controls.target, { x: center.x, y: center.y, z: center.z, duration: 1.0 })

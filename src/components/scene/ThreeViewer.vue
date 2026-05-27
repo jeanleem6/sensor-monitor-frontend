@@ -1,11 +1,18 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useViewerStore } from '@/stores/viewer'
 import { createThreeScene } from '@/composables/useThreeScene'
 
 const container = ref(null)
 const store = useViewerStore()
 let api = null
+
+// 折叠/展开两侧面板时，重新按当前层级 fit 镜头：
+// 折叠后中间可视区变宽，fitView 会读取新的 layoutZoom 把模型放大填满（gsap 平滑过渡）
+watch(
+  () => store.sidesCollapsed,
+  () => api?.fitView()
+)
 
 onMounted(async () => {
   api = createThreeScene(container.value, store)
