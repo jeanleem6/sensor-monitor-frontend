@@ -8,7 +8,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'TH-001' },
       { label: '当前温度', value: '24.6 ℃' },
-      { label: '当前湿度', value: '58 %RH' },
+      { label: '当前湿度', value: '58 %RH' }
       // { label: '运行状态', value: '在线', highlight: true }
     ]
   },
@@ -18,7 +18,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'AQ-002' },
       { label: 'PM2.5', value: '35 μg/m³' },
-      { label: 'CO₂ 浓度', value: '420 ppm' },
+      { label: 'CO₂ 浓度', value: '420 ppm' }
       // { label: '运行状态', value: '在线', highlight: true }
     ]
   },
@@ -28,7 +28,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'NS-003' },
       { label: '噪声等级', value: '52 dB' },
-      { label: '采样频率', value: '1 次/分钟' },
+      { label: '采样频率', value: '1 次/分钟' }
       // { label: '运行状态', value: '在线', highlight: true }
     ]
   },
@@ -38,7 +38,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'WQ-004' },
       { label: 'pH 值', value: '7.2' },
-      { label: '浊度', value: '3.8 NTU' },
+      { label: '浊度', value: '3.8 NTU' }
       // { label: '运行状态', value: '维护中', warn: true }
     ]
   },
@@ -48,7 +48,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'WS-005' },
       { label: '风速', value: '3.2 m/s' },
-      { label: '风向', value: '东北风' },
+      { label: '风向', value: '东北风' }
       // { label: '运行状态', value: '在线', highlight: true }
     ]
   },
@@ -58,7 +58,7 @@ const devices = [
     params: [
       //{ label: '设备编号', value: 'CAM-006' },
       { label: '分辨率', value: '1920×1080' },
-      { label: '帧率', value: '25 fps' },
+      { label: '帧率', value: '25 fps' }
       // { label: '运行状态', value: '在线', highlight: true }
     ]
   }
@@ -67,72 +67,74 @@ const devices = [
 
 <template>
   <div class="h-[calc(100vh-4rem)] grid grid-cols-3 grid-rows-2 gap-8 p-12 min-h-0 items-stretch">
-      <BasePanel v-for="device in devices" :key="device.title" :title="device.title" class="min-h-0 h-full">
-        <div class="flex flex-col h-full gap-3">
-          <!-- 设备图片 -->
+    <BasePanel v-for="device in devices" :key="device.title" :title="device.title" class="min-h-0 h-full">
+      <div class="flex flex-col h-full gap-3">
+        <!-- 设备图片 -->
+        <div
+          class="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden rounded-sm border border-primary/25 bg-linear-to-b from-primary/10 via-primary/5 to-transparent shadow-[inset_0_0_24px_rgb(19_234_235_/0.08)]"
+        >
           <div
-            class="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden rounded-sm border border-primary/25 bg-linear-to-b from-primary/10 via-primary/5 to-transparent shadow-[inset_0_0_24px_rgb(19_234_235_/_0.08)]"
-          >
-            <div
-              class="pointer-events-none absolute inset-3 border border-dashed border-primary/15 rounded-sm"
-              aria-hidden="true"
-            />
-            <div
-              class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-radial from-primary/20 to-primary/0 opacity-60"
-              aria-hidden="true"
-            />
-            <img
-              :src="device.image"
-              :alt="device.title"
-              class="relative z-1 max-h-full max-w-[72%] object-contain drop-shadow-[0_0_12px_rgb(19_234_235_/_0.35)] transition-transform duration-300 hover:scale-105"
-            />
+            class="pointer-events-none absolute inset-3 border border-dashed border-primary/15 rounded-sm"
+            aria-hidden="true"
+          />
+          <div
+            class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-full bg-radial from-primary/20 to-primary/0 opacity-60"
+            aria-hidden="true"
+          />
+          <img
+            :src="device.image"
+            :alt="device.title"
+            class="relative z-1 max-h-full max-w-[72%] object-contain drop-shadow-[0_0_12px_rgb(19_234_235_/0.35)] transition-transform duration-300 hover:scale-105"
+          />
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="relative h-px shrink-0">
+          <div class="absolute inset-0 bg-linear-to-r from-transparent via-primary/40 to-transparent" />
+          <div
+            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rotate-45 border border-primary/60 bg-dark"
+          />
+        </div>
+
+        <!-- 设备参数 -->
+        <div class="params-panel shrink-0">
+          <div class="params-panel__header">
+            <span class="params-panel__header-line" />
+            <span class="params-panel__header-title">实时参数</span>
+            <span class="params-panel__header-line" />
           </div>
 
-          <!-- 分隔线 -->
-          <div class="relative h-px shrink-0">
-            <div class="absolute inset-0 bg-linear-to-r from-transparent via-primary/40 to-transparent" />
-            <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rotate-45 border border-primary/60 bg-dark" />
-          </div>
+          <div class="params-panel__grid">
+            <div
+              v-for="(item, index) in device.params"
+              :key="index"
+              class="param-card"
+              :style="{ '--delay': `${index * 80}ms` }"
+            >
+              <div class="param-card__corner param-card__corner--tl" />
+              <div class="param-card__corner param-card__corner--br" />
 
-          <!-- 设备参数 -->
-          <div class="params-panel shrink-0">
-            <div class="params-panel__header">
-              <span class="params-panel__header-line" />
-              <span class="params-panel__header-title">实时参数</span>
-              <span class="params-panel__header-line" />
-            </div>
+              <span class="param-card__index">{{ String(index + 1).padStart(2, '0') }}</span>
+              <span class="param-card__label">{{ item.label }}</span>
 
-            <div class="params-panel__grid">
-              <div
-                v-for="(item, index) in device.params"
-                :key="index"
-                class="param-card"
-                :style="{ '--delay': `${index * 80}ms` }"
-              >
-                <div class="param-card__corner param-card__corner--tl" />
-                <div class="param-card__corner param-card__corner--br" />
-
-                <span class="param-card__index">{{ String(index + 1).padStart(2, '0') }}</span>
-                <span class="param-card__label">{{ item.label }}</span>
-
-                <div class="param-card__value-wrap">
-                  <span
-                    class="param-card__value"
-                    :class="{
-                      'param-card__value--highlight': item.highlight,
-                      'param-card__value--warn': item.warn
-                    }"
-                  >
-                    {{ item.value }}
-                  </span>
-                  <span class="param-card__glow" aria-hidden="true" />
-                </div>
+              <div class="param-card__value-wrap">
+                <span
+                  class="param-card__value"
+                  :class="{
+                    'param-card__value--highlight': item.highlight,
+                    'param-card__value--warn': item.warn
+                  }"
+                >
+                  {{ item.value }}
+                </span>
+                <span class="param-card__glow" aria-hidden="true" />
               </div>
             </div>
           </div>
         </div>
-      </BasePanel>
-    </div>
+      </div>
+    </BasePanel>
+  </div>
 </template>
 
 <style scoped>
@@ -142,7 +144,9 @@ const devices = [
   border-radius: 2px;
   border: 1px solid rgb(19 234 235 / 0.18);
   background: linear-gradient(180deg, rgb(19 234 235 / 0.06) 0%, rgb(19 234 235 / 0.02) 100%);
-  box-shadow: inset 0 1px 0 rgb(19 234 235 / 0.12), 0 4px 16px rgb(0 0 0 / 0.15);
+  box-shadow:
+    inset 0 1px 0 rgb(19 234 235 / 0.12),
+    0 4px 16px rgb(0 0 0 / 0.15);
 }
 
 .params-panel__header {
@@ -180,7 +184,10 @@ const devices = [
   border-radius: 2px;
   border: 1px solid rgb(19 234 235 / 0.12);
   background: linear-gradient(135deg, rgb(19 234 235 / 0.08) 0%, rgb(6 10 29 / 0.35) 100%);
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
   animation: param-fade-in 0.5s ease both;
   animation-delay: var(--delay);
 }
@@ -264,7 +271,9 @@ const devices = [
 
 .param-card__value--highlight {
   color: #13eaeb;
-  text-shadow: 0 0 6px rgb(19 234 235 / 0.7), 0 0 14px rgb(19 234 235 / 0.35);
+  text-shadow:
+    0 0 6px rgb(19 234 235 / 0.7),
+    0 0 14px rgb(19 234 235 / 0.35);
 }
 
 .param-card__value--warn {
