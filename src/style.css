@@ -122,6 +122,16 @@ body {
   }
 }
 
+/* BuildingAlarmStrip 报警横向跑马灯 */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 /* CollapsedSummary 折叠态纵向跑马灯 */
 @keyframes marquee-vertical {
   0% {
@@ -129,5 +139,15 @@ body {
   }
   100% {
     transform: translateY(-50%);
+  }
+}
+
+/* BuildingRightPanel 摄像头画面扫描线 */
+@keyframes scan {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100vh);
   }
 }

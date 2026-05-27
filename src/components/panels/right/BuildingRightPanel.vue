@@ -400,14 +400,3 @@ const onCameraSelect = (m) => {
     </template>
   </BaseModal>
 </template>
-
-<style>
-@keyframes scan {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(100vh);
-  }
-}
-</style>

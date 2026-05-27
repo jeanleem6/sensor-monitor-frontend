@@ -195,14 +195,3 @@ const showAll = ref(false)
     </BaseModal>
   </div>
 </template>
-
-<style>
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-</style>
