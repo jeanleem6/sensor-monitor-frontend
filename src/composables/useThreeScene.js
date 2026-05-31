@@ -12,11 +12,17 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree
 const DRAG_THRESHOLD = 5
 // 进入楼层视角时，剖切面从该层顶部往下切掉的比例（切掉天花板/楼板，俯视看进室内）
 const CEILING_CUT = 0.12
+// 房间视角配色：房间内部网格(M<编号>)原材质近黑，单独显示时整片发黑，
+// 进入房间层级时统一改成可读的中性灰蓝（偏冷，与 UI 协调）。
+// 取中等明度而非浅色：场景光照(尤其 decay=0 不衰减的聚光灯)会再叠加亮度，
+// 浅色叠光后整片发白刺眼，调暗一档叠光后才落在舒适区间。
+const ROOM_COLOR = 0x7c828c
 
 export function createThreeScene(container, store) {
   let scene, camera, renderer, controls
   let building = null
   let clippingPlane = null
+  let spotLight = null // 楼顶聚光灯：灯位/朝向待模型加载后依包围盒对准楼顶
   let rafId = null
   let disposed = false
 
@@ -156,10 +162,53 @@ export function createThreeScene(container, store) {
   }
 
   function createLights() {
-    const dir = new THREE.DirectionalLight(0xffffff, 1)
+    // 整体打底光（环境光 + 方向光）刻意压低：聚光灯亮斑要明显，就必须让周围环境暗一档，
+    // 否则环境光太强会把模型整体照到接近白，聚光灯那点额外亮度被淹没看不出差别。
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7)
     dir.position.set(100, 200, 100)
     scene.add(dir)
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8))
+    // 顶光：从左上方斜射的聚光灯，在楼顶打出一束明显的亮光斑。
+    // 强度给足且 decay=0 不衰减，使光锥内显著高于环境光 → 亮斑与周围拉开对比、清晰可见；
+    // angle 控制光锥张角(越小越聚拢)、penumbra 让光斑边缘柔和过渡。
+    // 灯位与 target 此时是占位值，待模型加载后由 aimSpotAtRoof() 依包围盒对准真正的楼顶。
+    spotLight = new THREE.SpotLight(0xffffff, 6, 0, Math.PI / 9, 0.3, 0)
+    scene.add(spotLight)
+    scene.add(spotLight.target)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55))
+  }
+
+  // 把聚光灯对准楼顶：灯放在楼顶左上方，target 指向屋顶中心，使光束落在楼顶而非中下部。
+  // 必须在模型加载并居中(normalizeModel)后调用——此时才知道包围盒/楼顶高度与模型尺度。
+  function aimSpotAtRoof() {
+    if (!spotLight || !restBuildingBox) return
+    const size = restBuildingBox.getSize(new THREE.Vector3())
+    const center = restBuildingBox.getCenter(new THREE.Vector3())
+    const maxDim = Math.max(size.x, size.y, size.z)
+    const roofY = restBuildingBox.max.y
+    const pos = new THREE.Vector3(center.x - maxDim * 0.4, roofY + maxDim * 0.8, center.z + maxDim * 0.4)
+    const target = new THREE.Vector3(center.x, roofY, center.z)
+    spotLight.position.copy(pos)
+    spotLight.target.position.copy(target)
+    spotLight.target.updateMatrixWorld()
+
+    // 自适应光锥张角：取灯到包围盒八角中相对光轴的最大偏角，确保整栋(含左侧/远侧)都落在锥内。
+    // ×1.12 留一点余量；钳到 60° 以内避免极端比例下光锥过宽失去"光束"的聚拢感。
+    const axis = target.clone().sub(pos).normalize()
+    let maxHalf = 0
+    for (let sx = -1; sx <= 1; sx += 2) {
+      for (let sy = -1; sy <= 1; sy += 2) {
+        for (let sz = -1; sz <= 1; sz += 2) {
+          const corner = new THREE.Vector3(
+            sx < 0 ? restBuildingBox.min.x : restBuildingBox.max.x,
+            sy < 0 ? restBuildingBox.min.y : restBuildingBox.max.y,
+            sz < 0 ? restBuildingBox.min.z : restBuildingBox.max.z
+          )
+          const toCorner = corner.sub(pos).normalize()
+          maxHalf = Math.max(maxHalf, Math.acos(THREE.MathUtils.clamp(axis.dot(toCorner), -1, 1)))
+        }
+      }
+    }
+    spotLight.angle = Math.min(maxHalf * 1.12, Math.PI / 3)
   }
 
   // ---------- 模型加载 ----------
@@ -206,6 +255,7 @@ export function createThreeScene(container, store) {
     building.position.z -= center.z
     // 此时尚未爆炸，缓存静止盒子用于后续回到楼栋视角时的居中计算
     restBuildingBox = new THREE.Box3().setFromObject(building)
+    aimSpotAtRoof() // 包围盒已知，把楼顶聚光灯对准真正的屋顶
     fitCameraToObject()
   }
 
@@ -303,6 +353,30 @@ export function createThreeScene(container, store) {
     newGroups.forEach((g) => geometry.addGroup(g.start, g.count, g.materialIndex))
   }
 
+  // 楼栋/楼层层级沿用模型自带的材质色，但其"白色"墙体/楼板的 Kd 实际偏灰，
+  // 渲染出来发暗发灰。这里只把近中性（低饱和度）的浅灰/白材质提亮到接近纯白，
+  // 带明显色相的材质（蓝/绿/木色等）以及近黑的房间内部网格都保持原色不动。
+  // 墙体"白色"构件 MTL 里 Kd 是 0.33 灰，经 three 的 sRGB→linear 转换后 mat.color 实际约 0.088
+  // （即诊断里看到的 0.09），加上暗场景光照偏弱，渲染出来发暗发灰。
+  // 注意：下列阈值都按 linear 空间取值（不是 MTL 里的 sRGB 数字）。
+  // 仅对"近乎纯中性、且属最亮一档"的灰下手：把漫反射提到柔和的浅灰白，并叠加少量自发光
+  // （emissive 不受场景光照影响，能把背光/侧光面也托起来消除发灰，但过量会让整片墙体发白刺眼）。
+  // 取值经过收敛：色相提到 0.82 的中性浅灰（而非纯白），emissive 仅 0.12 微微补光，
+  // 整体亮度与房间浅色(0xccd6e4)及场景光照协调，人眼看久不累。
+  // 其余更暗的灰(lambert5SG≈0.023 / 玻璃≈0.019)、带色相的木色(通道差大)及近黑构件均保持原色不动。
+  // 目标亮度（linear 空间）：略低于纯白的中性浅灰，兼顾通透与不刺眼
+  const NEUTRAL_LEVEL = 0.25
+  const NEUTRAL_EMISSIVE = 0.01
+  function brightenNeutral(mat) {
+    const color = mat.color
+    const max = Math.max(color.r, color.g, color.b)
+    const min = Math.min(color.r, color.g, color.b)
+    if (max - min > 0.03) return // 通道差大 → 有色相（木色等），不是"白色"，不动
+    if (max < 0.04) return // 比最亮的白墙(≈0.088)更暗 → 不属于"白色"，不动
+    color.setScalar(NEUTRAL_LEVEL)
+    if (mat.emissive) mat.emissive.setScalar(NEUTRAL_EMISSIVE)
+  }
+
   function prepareMeshes() {
     let groupsBefore = 0
     let groupsAfter = 0
@@ -312,10 +386,20 @@ export function createThreeScene(container, store) {
       compactGeometryByMaterial(child.geometry)
       groupsAfter += child.geometry.groups?.length || 0
       child.geometry.computeBoundsTree()
+      // 克隆出每个 mesh 独占的材质：OBJLoader 让多个 mesh 共用同一材质实例，
+      // 而高亮/透明/复原都是按 mesh 改材质，共用会串扰（如选中层被其它层的淡出连带变透明 → 看不到）
+      if (Array.isArray(child.material)) child.material = child.material.map((m) => m.clone())
+      else child.material = child.material.clone()
       eachMaterial(child, (mat) => {
-        if (mat.color) mat.userData.originalColor = mat.color.clone()
+        // 先把偏灰的"白色"构件提亮，其它颜色不动；
+        // 再以提亮后的颜色作为复原色记录，使重置/高亮后仍保持提亮效果
+        brightenNeutral(mat)
+        // 保留模型原始楼栋颜色与贴图，仅记录原色用于高亮后复原；
+        // DoubleSide：剖切掉天花板后能看到墙体内侧面，俯视进室内不至于穿透成空壳
+        mat.userData.originalColor = mat.color.clone()
         mat.clippingPlanes = [clippingPlane]
         mat.side = THREE.DoubleSide
+        mat.needsUpdate = true
       })
     })
     if (groupsBefore > groupsAfter) {
@@ -599,7 +683,8 @@ export function createThreeScene(container, store) {
         eachMaterial(m, (mat) => {
           mat.transparent = false
           mat.opacity = 1
-          if (mat.userData.originalColor) mat.color.copy(mat.userData.originalColor)
+          // 房间内部网格原色近黑，改用可读浅色（离开房间层级时 resetMeshAppearance 复原）
+          mat.color.set(ROOM_COLOR)
         })
       }
     })
