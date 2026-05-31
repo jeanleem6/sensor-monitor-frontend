@@ -73,7 +73,8 @@ export function createThreeScene(container, store) {
     camera = new THREE.PerspectiveCamera(60, w / h, 0.01, 1000000)
 
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(window.devicePixelRatio)
+    // 高分屏下 devicePixelRatio 可达 2~3，像素量呈平方增长。封顶 2 足够清晰，避免 4~9 倍片元开销
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(w, h)
     renderer.localClippingEnabled = true
     container.appendChild(renderer.domElement)
@@ -102,14 +103,14 @@ export function createThreeScene(container, store) {
       const mtlLoader = new MTLLoader()
       mtlLoader.setPath('/model/')
       mtlLoader.load(
-        'house.mtl',
+        'building.mtl',
         (materials) => {
           materials.preload()
           const objLoader = new OBJLoader()
           objLoader.setMaterials(materials)
           objLoader.setPath('/model/')
           objLoader.load(
-            'house.obj',
+            'building.obj',
             (obj) => {
               building = obj
               scene.add(building)
@@ -187,9 +188,61 @@ export function createThreeScene(container, store) {
     else cb(mesh.material)
   }
 
+  // 按材质合并几何分组：导出端把同材质的面来回穿插（本模型 8 种材质却有近万次 usemtl 切换），
+  // OBJLoader 对每次切换都生成一个 draw group，渲染时即近万次 draw call。
+  // 这里把同 materialIndex 的顶点重排为连续段，使每种材质只剩 1 个 group → draw call 降到材质数量级。
+  // 仅处理 OBJLoader 输出的非索引几何，且必须在 computeBoundsTree（会生成索引）之前调用。
+  function compactGeometryByMaterial(geometry) {
+    const groups = geometry.groups
+    if (geometry.index || !groups || groups.length <= 1) return
+
+    // 按首次出现顺序，将各 group 的顶点区间按 materialIndex 归桶
+    const order = []
+    const buckets = new Map()
+    for (const g of groups) {
+      const mi = g.materialIndex ?? 0
+      if (!buckets.has(mi)) {
+        buckets.set(mi, [])
+        order.push(mi)
+      }
+      buckets.get(mi).push([g.start, g.count])
+    }
+    if (order.length === groups.length) return // 已是一材质一分组，无可合并
+
+    const attrs = geometry.attributes
+    const names = Object.keys(attrs)
+    const dst = {}
+    for (const name of names) dst[name] = new attrs[name].array.constructor(attrs[name].array.length)
+
+    const newGroups = []
+    let cursor = 0 // 已写入的顶点数
+    for (const mi of order) {
+      const start = cursor
+      for (const [s, count] of buckets.get(mi)) {
+        for (const name of names) {
+          const is = attrs[name].itemSize
+          dst[name].set(attrs[name].array.subarray(s * is, (s + count) * is), cursor * is)
+        }
+        cursor += count
+      }
+      newGroups.push({ start, count: cursor - start, materialIndex: mi })
+    }
+
+    for (const name of names) {
+      geometry.setAttribute(name, new THREE.BufferAttribute(dst[name], attrs[name].itemSize))
+    }
+    geometry.clearGroups()
+    newGroups.forEach((g) => geometry.addGroup(g.start, g.count, g.materialIndex))
+  }
+
   function prepareMeshes() {
+    let groupsBefore = 0
+    let groupsAfter = 0
     building.traverse((child) => {
       if (!child.isMesh) return
+      groupsBefore += child.geometry.groups?.length || 0
+      compactGeometryByMaterial(child.geometry)
+      groupsAfter += child.geometry.groups?.length || 0
       child.geometry.computeBoundsTree()
       child.userData.baseY = 0 // 爆炸时用的 y 偏移基准
       eachMaterial(child, (mat) => {
@@ -198,6 +251,9 @@ export function createThreeScene(container, store) {
         mat.side = THREE.DoubleSide
       })
     })
+    if (groupsBefore > groupsAfter) {
+      console.info(`[useThreeScene] 几何分组合并：${groupsBefore} → ${groupsAfter} 个 draw 分组`)
+    }
   }
 
   function buildMaterialGroups() {
@@ -519,15 +575,16 @@ export function createThreeScene(container, store) {
   }
 
   function onMouseMove(e) {
-    pickerCoords(e)
     const dx = e.clientX - mouseDownPos.x
     const dy = e.clientY - mouseDownPos.y
     if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) isDragging = true
 
-    if (!building) return
+    // 仅在按住 shift 拖拽剖切面时才需要射线检测；平时鼠标移动不做无谓的全模型 raycast
+    if (!draggingSection || !building || !clippingPlane) return
+    pickerCoords(e)
     raycaster.setFromCamera(mouse, camera)
     const hit = raycaster.intersectObjects(building.children, true)
-    if (hit.length && draggingSection && clippingPlane) {
+    if (hit.length) {
       sectionY = hit[0].point.y
       clippingPlane.constant = sectionY
     }
