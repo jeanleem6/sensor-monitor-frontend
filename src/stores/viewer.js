@@ -20,7 +20,9 @@ export const useViewerStore = defineStore('viewer', () => {
   const selectedRoom = ref(null)
 
   // ---- 视觉模式 ----
-  const transparentMode = ref(true)
+  // 默认不透明：整栋半透明会产生极重的过度绘制(overdraw)导致交互卡顿，
+  // 改为按需开启（底部/告警条的「透明模式」按钮或 T 快捷键）
+  const transparentMode = ref(false)
 
   // ---- 两侧面板折叠（三层级共用一个全局开关，会话内记忆） ----
   const sidesCollapsed = ref(false)
