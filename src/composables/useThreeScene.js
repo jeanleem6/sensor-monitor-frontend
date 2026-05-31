@@ -10,6 +10,8 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree
 
 const DRAG_THRESHOLD = 5
+// 进入楼层视角时，剖切面从该层顶部往下切掉的比例（切掉天花板/楼板，俯视看进室内）
+const CEILING_CUT = 0.12
 
 export function createThreeScene(container, store) {
   let scene, camera, renderer, controls
@@ -22,30 +24,92 @@ export function createThreeScene(container, store) {
   const mouse = new THREE.Vector2()
 
   const materialGroups = {}
-  const floorGroups = [] // [meshes[]]
+  const floorGroups = [] // [meshes[]]，下标即楼层数组序号
   const floorBoxes = [] // Box3[]
+  const floorNumbers = [] // floorGroups 下标 → 模型里的真实楼层号(用于显示名)
+  const floorNumberToIndex = new Map() // 真实楼层号 → floorGroups 下标
   const roomMeshes = {} // { name: meshes[] }
   const roomMeta = {} // { name: { floorIndex, box, meshCount } }
 
   let buildingSize = 1
-  let explodeGap = 0
-  // 静止状态（未爆炸）的 building 盒子；用于回到楼栋视角时正确居中，避免读取仍在动画中的盒子
+  // 静止状态的 building 盒子；用于回到楼栋视角时正确居中
   let restBuildingBox = null
+  // 不剖切时剖切面的 constant（置于模型最高点之上，等效于关闭剖切）
+  let noClipConstant = Infinity
 
   let sectionY = 0
   let draggingSection = false
   let isDragging = false
   const mouseDownPos = { x: 0, y: 0 }
 
-  // 两侧面板折叠后空出大片可视区域：把镜头按比例拉近(×0.72)放大模型填满。
-  // 但楼栋视角本身用 offset 0.7（刻意溢出、靠面板遮住两侧），直接 ×0.72→0.504 会过大溢出，
-  // 不限制又会比展开态(0.7)还远→反而更小。故设下限 0.6：比展开态略大、填满可视区又不溢出，
-  // 楼层/房间(×0.72 后为 1.08/1.15)远在下限之上，不受影响。
-  const SIDES_COLLAPSED_ZOOM = 0.72
-  const MIN_COLLAPSED_SCALE = 0.6
-  // 把某个 fit 的 padding/offset 换算成考虑折叠态后的有效缩放
-  const layoutScale = (scale) =>
-    store.sidesCollapsed ? Math.max(scale * SIDES_COLLAPSED_ZOOM, MIN_COLLAPSED_SCALE) : scale
+  // canvas 铺满全屏(absolute inset-0)，而两侧面板/顶部面包屑/底部浮动条都是浮在其上的 UI。
+  // 若把模型居中到整块 canvas，下半部分会被底部浮动条遮住（楼层视角尤甚），两侧也被面板压住。
+  // 解决：让相机去框「可视矩形」= canvas 扣掉两侧面板宽 + 顶部面包屑 + 底部浮动条 后剩下的中间区域，
+  // 用 camera.setViewOffset 把这块矩形当作有效视口。模型因此自动居中在浮动条之上、并随折叠/展开
+  // 自动放大缩小填满空出的横向空间——无需任何手工缩放系数。
+  // 下列常量为对应 Tailwind 类换算的 CSS 像素（REM=16）：
+  const REM = 16
+  // 两侧面板占据宽度：left/right-3(0.75rem) + 面板宽 w-100(25rem 展开) / w-44(11rem 折叠)
+  const SIDE_W_EXPANDED = (0.75 + 25) * REM // 412
+  const SIDE_W_COLLAPSED = (0.75 + 11) * REM // 188
+  // 顶部面包屑/面板锚定在 top-20(5rem)，再留出按钮高度余量
+  const INSET_TOP = 5 * REM + 8 // ~88
+  // 底部浮动条 bottom-5(1.25rem) + 条体高度(约 3.5rem) + 余量，保证模型不被其遮挡
+  const INSET_BOTTOM = (1.25 + 3.5) * REM + 8 // ~84
+
+  // 当前可视矩形（CSS 逻辑像素）：{x,y,w,h} 为中间可用区域，{W,H} 为整块 canvas
+  function computeViewport() {
+    const W = container.clientWidth
+    const H = container.clientHeight
+    const side = store.sidesCollapsed ? SIDE_W_COLLAPSED : SIDE_W_EXPANDED
+    const w = Math.max(W - side * 2, 1)
+    const h = Math.max(H - INSET_TOP - INSET_BOTTOM, 1)
+    return { x: side, y: INSET_TOP, w, h, W, H }
+  }
+
+  // 把相机的有效视口对齐到可视矩形：setViewOffset 让整块 canvas 渲染「以可视矩形为画面」的视图，
+  // 多出来的部分（面板/浮动条所在区域）正好落到它们背后(canvas z-0 在面板 z-10 之下)。
+  // 经此变换后有效投影宽高比仍为 W/H，不产生拉伸。
+  function applyViewport() {
+    if (!camera) return
+    const { x, y, w, h, W, H } = computeViewport()
+    camera.aspect = w / h
+    camera.setViewOffset(w, h, -x, -y, W, H)
+    camera.updateProjectionMatrix()
+  }
+
+  // 全局缩放微调：把模型整体再缩小 25%（= 显示尺寸 ×0.75 → 相机距离 ×1/0.75）。
+  // 各层级/展开折叠统一受此影响，单独调某层级改对应 margin 即可。
+  const GLOBAL_ZOOM = 0.75
+
+  // 楼栋层级 margin：基准 0.85（略溢到面板背后）；折叠时再缩小 20%（显示 ×0.8 → margin ×1/0.8）
+  const BUILDING_MARGIN = 0.85
+  const buildingMargin = () => (store.sidesCollapsed ? BUILDING_MARGIN / 0.8 : BUILDING_MARGIN)
+
+  // 依相机视线方向 dir 把 box 八角投影到屏幕的横/纵轴，分别按横/纵 FOV 求所需相机距离，取较大者→完整框住。
+  // margin 为外边距系数：>1 留白、=1 紧贴、<1 刻意溢出（楼栋视角用于让模型略微溢到面板背后）。
+  function distanceToFit(box, dir, margin) {
+    const fovY = (camera.fov * Math.PI) / 180
+    const fovX = 2 * Math.atan(Math.tan(fovY / 2) * camera.aspect)
+    const forward = dir.clone().normalize()
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize()
+    const up = new THREE.Vector3().crossVectors(right, forward).normalize()
+    const half = box.getSize(new THREE.Vector3()).multiplyScalar(0.5)
+    let halfW = 0
+    let halfH = 0
+    for (let sx = -1; sx <= 1; sx += 2) {
+      for (let sy = -1; sy <= 1; sy += 2) {
+        for (let sz = -1; sz <= 1; sz += 2) {
+          const corner = new THREE.Vector3(sx * half.x, sy * half.y, sz * half.z)
+          halfW = Math.max(halfW, Math.abs(corner.dot(right)))
+          halfH = Math.max(halfH, Math.abs(corner.dot(up)))
+        }
+      }
+    }
+    const dW = halfW / Math.tan(fovX / 2)
+    const dH = halfH / Math.tan(fovY / 2)
+    return (Math.max(dW, dH) * margin) / GLOBAL_ZOOM
+  }
 
   // 视图切换中的延后任务（setTimeout / gsap tween）：用户快速连续切换层级时，
   // 必须取消上一段还未完成的隐藏/淡出/相机动画，否则会覆盖新视图的状态
@@ -62,6 +126,7 @@ export function createThreeScene(container, store) {
     })
     if (camera) gsap.killTweensOf(camera.position)
     if (controls) gsap.killTweensOf(controls.target)
+    if (clippingPlane) gsap.killTweensOf(clippingPlane)
   }
 
   // ---------- 初始化 ----------
@@ -144,19 +209,18 @@ export function createThreeScene(container, store) {
     fitCameraToObject()
   }
 
-  function fitCameraToObject(offset = 0.7) {
+  // margin：外边距系数（见 distanceToFit）。楼栋默认 0.85，让整栋略微溢到两侧面板背后，更具沉浸感
+  function fitCameraToObject(margin = 0.85, topRatio = 0.6) {
     const box = new THREE.Box3().setFromObject(building)
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
     const maxDim = Math.max(size.x, size.y, size.z)
     buildingSize = maxDim
-    explodeGap = Math.max(size.y * 0.25, maxDim * 0.08)
 
-    const fov = (camera.fov * Math.PI) / 180
-    let distance = Math.abs(maxDim / 2 / Math.tan(fov / 2))
-    distance *= layoutScale(offset)
-
-    camera.position.set(center.x + distance, center.y + distance * 0.6, center.z + distance)
+    applyViewport()
+    const dir = new THREE.Vector3(1, topRatio, 1)
+    const distance = distanceToFit(box, dir, margin)
+    camera.position.copy(center.clone().add(dir.clone().normalize().multiplyScalar(distance)))
     camera.near = maxDim / 100
     camera.far = maxDim * 100
     camera.updateProjectionMatrix()
@@ -165,18 +229,22 @@ export function createThreeScene(container, store) {
     controls.maxDistance = maxDim * 20
     controls.update()
 
-    clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), size.y)
+    // 剖切面法线朝下：切掉 y > constant 的部分。constant 默认置于模型顶部之上 → 不剖切
+    noClipConstant = box.max.y + maxDim
+    if (!clippingPlane) clippingPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), noClipConstant)
+    else clippingPlane.constant = noClipConstant
   }
 
-  function focusBox(box, paddingScale = 1.3) {
+  // 把镜头平滑动画到「框住 box」的位置。
+  // margin：外边距系数；topRatio：视线垂直抬升比例（默认 0.6 斜视，楼层剖切用更大值偏俯视看进室内）。
+  // 每次都先 applyViewport()：折叠/展开后可视矩形宽高比变了，相机距离须据此重算才能恰好填满中间区域。
+  function focusBox(box, margin = 1.1, { topRatio = 0.6 } = {}) {
     if (!box || box.isEmpty()) return
+    applyViewport()
     const center = box.getCenter(new THREE.Vector3())
-    const size = box.getSize(new THREE.Vector3())
-    const maxDim = Math.max(size.x, size.y, size.z)
-    const fov = (camera.fov * Math.PI) / 180
-    let distance = Math.abs(maxDim / 2 / Math.tan(fov / 2))
-    distance *= layoutScale(paddingScale)
-    const targetPos = center.clone().add(new THREE.Vector3(distance, distance * 0.6, distance))
+    const dir = new THREE.Vector3(1, topRatio, 1)
+    const distance = distanceToFit(box, dir, margin)
+    const targetPos = center.clone().add(dir.clone().normalize().multiplyScalar(distance))
     gsap.to(camera.position, { x: targetPos.x, y: targetPos.y, z: targetPos.z, duration: 1.0 })
     gsap.to(controls.target, { x: center.x, y: center.y, z: center.z, duration: 1.0 })
   }
@@ -244,7 +312,6 @@ export function createThreeScene(container, store) {
       compactGeometryByMaterial(child.geometry)
       groupsAfter += child.geometry.groups?.length || 0
       child.geometry.computeBoundsTree()
-      child.userData.baseY = 0 // 爆炸时用的 y 偏移基准
       eachMaterial(child, (mat) => {
         if (mat.color) mat.userData.originalColor = mat.color.clone()
         mat.clippingPlanes = [clippingPlane]
@@ -267,8 +334,57 @@ export function createThreeScene(container, store) {
     })
   }
 
-  // 用 bbox 中心 Y 来分楼层，自适应阈值（OBJLoader 出来 mesh.position 通常都是 0）
+  // ---------- 楼层/房间识别（优先用模型自带的组名，失败回退空间启发式） ----------
+  // 模型组名形如 "group1 f3_c M317"：f<N> 为楼层号，f<N>_c 内带 M<编号> 的为房间。
+  // OBJLoader 会把 g 组名原样写到 mesh.name（three r0.160）。
+  function parseFloorNumber(name) {
+    const m = /\bf(\d+)/i.exec(name || '')
+    return m ? parseInt(m[1], 10) : null
+  }
+  // 仅 f<N>_c 容器内、且带 M 编号的 mesh 才算房间；M340_1 归并到 M340；polySurface 不算房间
+  function parseRoomId(name) {
+    if (!name || !/f\d+_c/i.test(name)) return null
+    const m = /\bM(\d+)/.exec(name)
+    return m ? 'M' + m[1] : null
+  }
+
   function detectFloors() {
+    // 优先：按组名里的楼层号 f<N> 分层，排除 f0（地面/室外，不作为可点击楼层）
+    const byFloor = new Map() // 楼层号 → meshes[]
+    let named = 0
+    building.traverse((o) => {
+      if (!o.isMesh) return
+      const fn = parseFloorNumber(o.name)
+      if (fn == null) return
+      named++
+      if (fn === 0) {
+        o.userData.isGround = true // f0 地面：保持可见但不归入任何楼层，点击不进入
+        return
+      }
+      if (!byFloor.has(fn)) byFloor.set(fn, [])
+      byFloor.get(fn).push(o)
+    })
+
+    if (named === 0 || byFloor.size === 0) {
+      detectFloorsBySpace() // 兜底：模型无 f<N> 命名时退回原空间启发式
+      return
+    }
+
+    ;[...byFloor.keys()]
+      .sort((a, b) => a - b)
+      .forEach((fn) => {
+        const meshes = byFloor.get(fn)
+        const box = new THREE.Box3()
+        meshes.forEach((m) => box.expandByObject(m))
+        floorGroups.push(meshes)
+        floorBoxes.push(box)
+        floorNumbers.push(fn)
+        floorNumberToIndex.set(fn, floorGroups.length - 1)
+      })
+  }
+
+  // 兜底：用 bbox 中心 Y 来分楼层，自适应阈值（OBJLoader 出来 mesh.position 通常都是 0）
+  function detectFloorsBySpace() {
     const items = []
     building.traverse((o) => {
       if (!o.isMesh) return
@@ -294,15 +410,40 @@ export function createThreeScene(container, store) {
     }
     if (current.length) floorGroups.push(current)
 
-    floorGroups.forEach((meshes) => {
+    floorGroups.forEach((meshes, i) => {
       const box = new THREE.Box3()
       meshes.forEach((m) => box.expandByObject(m))
       floorBoxes.push(box)
+      floorNumbers.push(i + 1)
+      floorNumberToIndex.set(i + 1, i)
     })
   }
 
-  // 用 bbox 中心做空间聚类，阈值与模型大小成正比
   function detectRooms() {
+    // 优先：按组名里的房间号 M<编号> 聚合（polySurface 等无编号构件不算房间，留在楼层结构里）
+    const byRoom = new Map()
+    building.traverse((m) => {
+      if (!m.isMesh) return
+      const rid = parseRoomId(m.name)
+      if (!rid) return
+      if (!byRoom.has(rid)) byRoom.set(rid, [])
+      byRoom.get(rid).push(m)
+    })
+
+    if (byRoom.size === 0) {
+      detectRoomsBySpace() // 兜底：模型无 M 命名时退回原空间聚类
+      return
+    }
+
+    ;[...byRoom.keys()]
+      .sort((a, b) => parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10))
+      .forEach((rid) => {
+        roomMeshes[rid] = byRoom.get(rid)
+      })
+  }
+
+  // 兜底：用 bbox 中心做空间聚类，阈值与模型大小成正比
+  function detectRoomsBySpace() {
     const items = []
     building.traverse((m) => {
       if (!m.isMesh) return
@@ -340,18 +481,24 @@ export function createThreeScene(container, store) {
     Object.entries(roomMeshes).forEach(([name, meshes]) => {
       const box = new THREE.Box3()
       meshes.forEach((m) => box.expandByObject(m))
-      const cy = (box.min.y + box.max.y) / 2
-      let bestIdx = 0
-      let bestDist = Infinity
-      floorBoxes.forEach((fb, i) => {
-        const fy = (fb.min.y + fb.max.y) / 2
-        const d = Math.abs(fy - cy)
-        if (d < bestDist) {
-          bestDist = d
-          bestIdx = i
-        }
-      })
-      roomMeta[name] = { floorIndex: bestIdx, box, meshCount: meshes.length }
+
+      // 优先用房间 mesh 名里的楼层号定位所属楼层；解析不到再退回按 bbox 中心 Y 就近匹配
+      const fn = parseFloorNumber(meshes[0]?.name)
+      let floorIndex = floorNumberToIndex.has(fn) ? floorNumberToIndex.get(fn) : -1
+      if (floorIndex < 0) {
+        const cy = (box.min.y + box.max.y) / 2
+        let bestDist = Infinity
+        floorBoxes.forEach((fb, i) => {
+          const fy = (fb.min.y + fb.max.y) / 2
+          const d = Math.abs(fy - cy)
+          if (d < bestDist) {
+            bestDist = d
+            floorIndex = i
+          }
+        })
+        if (floorIndex < 0) floorIndex = 0
+      }
+      roomMeta[name] = { floorIndex, box, meshCount: meshes.length }
     })
   }
 
@@ -370,7 +517,7 @@ export function createThreeScene(container, store) {
       meshes.forEach((m) => eachMaterial(m, (mat) => materials.add(mat.name || 'default')))
       return {
         index: i,
-        name: `F${i + 1}`,
+        name: `F${floorNumbers[i] ?? i + 1}`,
         meshCount: meshes.length,
         materialCount: materials.size,
         roomNames: floorRoomsMap[i] || []
@@ -397,21 +544,10 @@ export function createThreeScene(container, store) {
     })
   }
 
-  function animateExplode(active) {
-    floorGroups.forEach((floor, i) => {
-      const targetOffset = active ? i * explodeGap : 0
-      floor.forEach((m) => {
-        const baseY = m.userData.baseY ?? 0
-        gsap.to(m.position, {
-          y: m.position.y - baseY + targetOffset,
-          duration: 0.8,
-          ease: 'power2.out',
-          onUpdate: () => {
-            m.userData.baseY = targetOffset
-          }
-        })
-      })
-    })
+  // 平滑移动剖切面到目标高度（关闭剖切传 noClipConstant）
+  function animateClip(targetConstant) {
+    if (!clippingPlane) return
+    gsap.to(clippingPlane, { constant: targetConstant, duration: 0.8, ease: 'power2.out' })
   }
 
   // 视图切换后，依 store.transparentMode 重新套用透明状态，避免 UI 与模型不同步
@@ -423,56 +559,37 @@ export function createThreeScene(container, store) {
     if (!building) return
     cancelTransitions()
     resetMeshAppearance()
-    animateExplode(false)
-    // 用静止盒子平滑动画镜头：避免读取仍在爆炸状态下的盒子导致中心偏移，
-    // 同时 gsap 会覆盖前一个 focusFloor/focusRoom 未完成的 camera tween
-    if (restBuildingBox) focusBox(restBuildingBox, 0.7)
-    else fitCameraToObject()
+    // 收起剖切面，整栋恢复完整
+    animateClip(noClipConstant)
+    // 用静止盒子平滑动画镜头；gsap 会覆盖前一个 focusFloor/focusRoom 未完成的 camera tween
+    if (restBuildingBox) focusBox(restBuildingBox, buildingMargin())
+    else fitCameraToObject(buildingMargin())
     reapplyTransparent()
   }
 
-  // 楼层爆炸 → 隐藏其它层 → 镜头聚焦
+  // 剖切俯视：剖切面下切到所选层顶部之下（切掉天花板与其以上所有楼层），从上往下看进本层室内。
+  // 楼层不再爆炸——爆炸会把高层推过剖切面导致整层消失（即此前“点 f4 只剩 f0”的根因）。
   function focusFloor(index) {
-    if (!building || !floorGroups[index]) return
+    if (!building || !floorGroups[index] || !floorBoxes[index]) return
     cancelTransitions()
     resetMeshAppearance()
-    // 先按透明模式重设基线：避免 resetMeshAppearance 把目标层冲为 opacity=1
-    // 导致动画过程中目标层先变不透明、动画结束才突然回到透明的闪烁
     reapplyTransparent()
-    animateExplode(true)
 
-    // 动画途中淡出其它层（gsap 从当前 opacity 起 tween：透明模式下 0.25→0，否则 1→0）
-    floorGroups.forEach((floor, i) => {
-      if (i === index) return
-      floor.forEach((m) => {
-        eachMaterial(m, (mat) => {
-          mat.transparent = true
-          gsap.to(mat, { opacity: 0, duration: 0.6, delay: 0.3 })
-        })
-      })
-    })
-    pendingTimeouts.push(
-      setTimeout(() => {
-        floorGroups.forEach((floor, i) => {
-          if (i === index) return
-          floor.forEach((m) => (m.visible = false))
-        })
-      }, 950)
-    )
+    // 切到本层顶部往下 CEILING_CUT 处：高于此的天花板与所有上层被剖掉，本层室内露出
+    const fbox = floorBoxes[index]
+    const fHeight = Math.max(fbox.max.y - fbox.min.y, 1e-3)
+    const cutC = fbox.max.y - fHeight * CEILING_CUT
+    animateClip(cutC)
 
-    // 聚焦目标层（用爆炸后的盒子）
-    pendingTimeouts.push(
-      setTimeout(() => {
-        const box = new THREE.Box3()
-        floorGroups[index].forEach((m) => box.expandByObject(m))
-        focusBox(box, 1.5)
-      }, 100)
-    )
+    // 偏俯视聚焦本层，看进剖开的室内。margin=1.0：刚好把本层完整框进可视矩形（浮动条之上），不再被遮挡
+    focusBox(fbox, 1.0, { topRatio: 1.3 })
   }
 
   function focusRoom(name) {
     if (!building || !roomMeshes[name]) return
     cancelTransitions()
+    // 进入房间只显示该房间网格，无需剖切：收起剖切面避免房间被楼层剖切面误切
+    animateClip(noClipConstant)
     const targetMeshes = new Set(roomMeshes[name])
     building.traverse((m) => {
       if (!m.isMesh) return
@@ -488,7 +605,7 @@ export function createThreeScene(container, store) {
     })
     const box = new THREE.Box3()
     roomMeshes[name].forEach((m) => box.expandByObject(m))
-    focusBox(box, 1.6)
+    focusBox(box, 1.15)
     reapplyTransparent()
   }
 
@@ -517,7 +634,7 @@ export function createThreeScene(container, store) {
     })
     const box = new THREE.Box3()
     materialGroups[name].forEach((m) => box.expandByObject(m))
-    focusBox(box, 1.4)
+    focusBox(box, 1.05)
   }
 
   function toggleTransparent(on) {
@@ -537,15 +654,14 @@ export function createThreeScene(container, store) {
     if (store.level === 'room' && store.selectedRoom && roomMeshes[store.selectedRoom]) {
       const box = new THREE.Box3()
       roomMeshes[store.selectedRoom].forEach((m) => box.expandByObject(m))
-      focusBox(box, 1.6)
-    } else if (store.level === 'floor' && floorGroups[store.selectedFloor]) {
-      const box = new THREE.Box3()
-      floorGroups[store.selectedFloor].forEach((m) => box.expandByObject(m))
-      focusBox(box, 1.5)
+      focusBox(box, 1.15)
+    } else if (store.level === 'floor' && floorBoxes[store.selectedFloor]) {
+      // 与 focusFloor 一致：偏俯视看进剖开的本层室内
+      focusBox(floorBoxes[store.selectedFloor], 1.0, { topRatio: 1.3 })
     } else if (restBuildingBox) {
-      focusBox(restBuildingBox, 0.7)
+      focusBox(restBuildingBox, buildingMargin())
     } else {
-      fitCameraToObject()
+      fitCameraToObject(buildingMargin())
     }
   }
 
@@ -609,7 +725,12 @@ export function createThreeScene(container, store) {
     if (draggingSection || isDragging || !building) return
     pickerCoords(e)
     raycaster.setFromCamera(mouse, camera)
-    const hits = raycaster.intersectObjects(building.children, true).filter((h) => h.object.visible)
+    // raycaster 不感知剖切面：被剖掉(y > 剖切面 constant)的几何仍会被射线命中。
+    // 楼层视角下若不过滤，俯视点房间会先打到被切走的天花板/上层 → 取错网格。
+    const cut = clippingPlane ? clippingPlane.constant : Infinity
+    const hits = raycaster
+      .intersectObjects(building.children, true)
+      .filter((h) => h.object.visible && h.point.y <= cut + buildingSize * 1e-3)
     if (hits.length === 0) return
     const mesh = hits[0].object
     const materialName = Array.isArray(mesh.material)
@@ -622,9 +743,39 @@ export function createThreeScene(container, store) {
       const idx = floorGroups.findIndex((g) => g.includes(mesh))
       if (idx >= 0) store.selectFloor(idx)
     } else if (store.level === 'floor') {
-      const roomName = Object.keys(roomMeshes).find((n) => roomMeshes[n].includes(mesh))
+      // 多数网格是墙体/结构(polySurface)，不属于任何房间，精确归属命中率极低。
+      // 先按精确归属，命中不到则用命中点落在哪个房间盒子来判定（可点墙体/地面进房间）。
+      let roomName = Object.keys(roomMeshes).find((n) => roomMeshes[n].includes(mesh))
+      if (!roomName) roomName = findRoomByPoint(hits[0].point, store.selectedFloor)
       if (roomName) store.enterRoom(roomName)
     }
+  }
+
+  // 由命中点定位房间：优先落在盒子内、且属当前层的房间；否则取当前层内最近的房间盒子（带距离阈值）
+  function findRoomByPoint(point, preferFloorIndex) {
+    let contained = null
+    let containedOnFloor = null
+    Object.entries(roomMeta).forEach(([name, meta]) => {
+      if (!meta.box.containsPoint(point)) return
+      if (!contained) contained = name
+      if (meta.floorIndex === preferFloorIndex && !containedOnFloor) containedOnFloor = name
+    })
+    if (containedOnFloor) return containedOnFloor
+    if (contained) return contained
+
+    // 兜底：当前层内最近的房间中心，限制在合理距离内，避免点空白处跳到远处房间
+    const maxDist = buildingSize * 0.2
+    let nearest = null
+    let nd = Infinity
+    Object.entries(roomMeta).forEach(([name, meta]) => {
+      if (preferFloorIndex != null && meta.floorIndex !== preferFloorIndex) return
+      const d = meta.box.getCenter(new THREE.Vector3()).distanceTo(point)
+      if (d < nd) {
+        nd = d
+        nearest = name
+      }
+    })
+    return nd <= maxDist ? nearest : null
   }
 
   function onKey(e) {
@@ -637,11 +788,9 @@ export function createThreeScene(container, store) {
 
   function onResize() {
     if (!container || !renderer) return
-    const w = container.clientWidth
-    const h = container.clientHeight
-    camera.aspect = w / h
-    camera.updateProjectionMatrix()
-    renderer.setSize(w, h)
+    renderer.setSize(container.clientWidth, container.clientHeight)
+    // 重新对齐可视矩形：applyViewport 会据新尺寸设置 aspect、view offset 并刷新投影
+    applyViewport()
   }
 
   // ---------- 渲染 ----------
